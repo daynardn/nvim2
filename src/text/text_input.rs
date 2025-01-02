@@ -46,14 +46,13 @@ pub struct TextInput {
 
 impl TextInput {
     fn left(&mut self, _: &Left, cx: &mut ViewContext<Self>) {
-        // if self.selected_range.is_empty() {
-        //     self.move_to(self.previous_boundary(self.cursor_offset()), cx);
-        // } else {
-        //     self.move_to(self.selected_range.start, cx)
-        // }
-        // self.content = self.content.to_owned() + "\n".into();
+        if self.selected_range.is_empty() {
+            self.move_to(self.previous_boundary(self.cursor_offset()), cx);
+        } else {
+            self.move_to(self.selected_range.start, cx)
+        }
 
-        self.content = (self.content[0..self.content.len()].to_owned() + "\n").into();
+        // self.content = (self.content[0..self.content.len()].to_owned() + "\n").into();
     }
 
     fn right(&mut self, _: &Right, cx: &mut ViewContext<Self>) {
@@ -339,19 +338,18 @@ impl ViewInputHandler for TextInput {
         bounds: Bounds<Pixels>,
         _cx: &mut ViewContext<Self>,
     ) -> Option<Bounds<Pixels>> {
-        // let last_layout = self.last_layout.as_ref()?;
-        // let range = self.range_from_utf16(&range_utf16);
-        // Some(Bounds::from_corners(
-        //     point(
-        //         bounds.left() + last_layout.x_for_index(range.start),
-        //         bounds.top(),
-        //     ),
-        //     point(
-        //         bounds.left() + last_layout.x_for_index(range.end),
-        //         bounds.bottom(),
-        //     ),
-        // ))
-        None
+        let last_layout = self.last_layout.as_ref()?;
+        let range = self.range_from_utf16(&range_utf16);
+        Some(Bounds::from_corners(
+            point(
+                bounds.left() + last_layout.unwrapped_layout.x_for_index(range.start),
+                bounds.top(),
+            ),
+            point(
+                bounds.left() + last_layout.unwrapped_layout.x_for_index(range.end),
+                bounds.bottom(),
+            ),
+        ))
     }
 }
 
@@ -453,40 +451,42 @@ impl Element for TextElement {
             .shape_text(display_text, font_size, &runs, Some(Pixels(500.0)))
             .unwrap();
 
-        // let cursor_pos = line.x_for_index(cursor);
-        // let (selection, cursor) = if selected_range.is_empty() {
-        //     (
-        //         None,
-        //         Some(fill(
-        //             Bounds::new(
-        //                 point(bounds.left() + cursor_pos, bounds.top()),
-        //                 size(px(2.), bounds.bottom() - bounds.top()),
-        //             ),
-        //             gpui::blue(),
-        //         )),
-        //     )
-        // } else {
-        //     (
-        //         Some(fill(
-        //             Bounds::from_corners(
-        //                 point(
-        //                     bounds.left() + line.x_for_index(selected_range.start),
-        //                     bounds.top(),
-        //                 ),
-        //                 point(
-        //                     bounds.left() + line.x_for_index(selected_range.end),
-        //                     bounds.bottom(),
-        //                 ),
-        //             ),
-        //             rgba(0x3311ff30),
-        //         )),
-        //         None,
-        //     )
-        // };
+        let cursor_pos = line[0].unwrapped_layout.x_for_index(cursor);
+        let (selection, cursor) = if selected_range.is_empty() {
+            (
+                None,
+                Some(fill(
+                    Bounds::new(
+                        point(bounds.left() + cursor_pos, bounds.top()),
+                        size(px(2.), bounds.bottom() - bounds.top()),
+                    ),
+                    gpui::blue(),
+                )),
+            )
+        } else {
+            (
+                Some(fill(
+                    Bounds::from_corners(
+                        point(
+                            bounds.left()
+                                + line[0].unwrapped_layout.x_for_index(selected_range.start),
+                            bounds.top(),
+                        ),
+                        point(
+                            bounds.left()
+                                + line[0].unwrapped_layout.x_for_index(selected_range.end),
+                            bounds.bottom(),
+                        ),
+                    ),
+                    rgba(0x3311ff30),
+                )),
+                None,
+            )
+        };
         PrepaintState {
             lines: Some(line),
-            cursor: None,    //cursor,
-            selection: None, //selection,
+            cursor,
+            selection,
         }
     }
 
@@ -507,6 +507,7 @@ impl Element for TextElement {
             cx.paint_quad(selection)
         }
         for line in prepaint.lines.clone().unwrap() {
+            println!("new line");
             line.paint(bounds.origin, cx.line_height(), cx).unwrap();
 
             if focus_handle.is_focused(cx) {

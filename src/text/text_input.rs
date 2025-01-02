@@ -1,5 +1,6 @@
 use std::{ops::Range, sync::Arc};
 
+use smallvec::SmallVec;
 use unicode_segmentation::*;
 
 use gpui::{
@@ -7,8 +8,9 @@ use gpui::{
     white, yellow, App, AppContext, Bounds, ClipboardItem, CursorStyle, ElementId,
     ElementInputHandler, FocusHandle, FocusableView, GlobalElementId, KeyBinding, Keystroke,
     LayoutId, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, PaintQuad, Pixels, Point,
-    ShapedLine, SharedString, SharedUri, Style, TextRun, UTF16Selection, UnderlineStyle, View,
-    ViewContext, ViewInputHandler, WindowBounds, WindowContext, WindowOptions,
+    ShapedLine, SharedString, SharedUri, Style, TextLayout, TextRun, UTF16Selection,
+    UnderlineStyle, View, ViewContext, ViewInputHandler, WindowBounds, WindowContext,
+    WindowOptions, WrappedLine,
 };
 
 actions!(
@@ -37,7 +39,7 @@ pub struct TextInput {
     pub selected_range: Range<usize>,
     pub selection_reversed: bool,
     pub marked_range: Option<Range<usize>>,
-    pub last_layout: Option<ShapedLine>,
+    pub last_layout: Option<WrappedLine>,
     pub last_bounds: Option<Bounds<Pixels>>,
     pub is_selecting: bool,
 }
@@ -171,7 +173,8 @@ impl TextInput {
         if position.y > bounds.bottom() {
             return self.content.len();
         }
-        line.closest_index_for_x(position.x - bounds.left())
+        line.unwrapped_layout
+            .closest_index_for_x(position.x - bounds.left())
     }
 
     fn select_to(&mut self, offset: usize, cx: &mut ViewContext<Self>) {
@@ -336,18 +339,19 @@ impl ViewInputHandler for TextInput {
         bounds: Bounds<Pixels>,
         _cx: &mut ViewContext<Self>,
     ) -> Option<Bounds<Pixels>> {
-        let last_layout = self.last_layout.as_ref()?;
-        let range = self.range_from_utf16(&range_utf16);
-        Some(Bounds::from_corners(
-            point(
-                bounds.left() + last_layout.x_for_index(range.start),
-                bounds.top(),
-            ),
-            point(
-                bounds.left() + last_layout.x_for_index(range.end),
-                bounds.bottom(),
-            ),
-        ))
+        // let last_layout = self.last_layout.as_ref()?;
+        // let range = self.range_from_utf16(&range_utf16);
+        // Some(Bounds::from_corners(
+        //     point(
+        //         bounds.left() + last_layout.x_for_index(range.start),
+        //         bounds.top(),
+        //     ),
+        //     point(
+        //         bounds.left() + last_layout.x_for_index(range.end),
+        //         bounds.bottom(),
+        //     ),
+        // ))
+        None
     }
 }
 
@@ -356,7 +360,7 @@ struct TextElement {
 }
 
 struct PrepaintState {
-    line: Option<ShapedLine>,
+    lines: Option<smallvec::SmallVec<[WrappedLine; 1]>>,
     cursor: Option<PaintQuad>,
     selection: Option<PaintQuad>,
 }
@@ -408,8 +412,6 @@ impl Element for TextElement {
             (content.clone(), style.color)
         };
 
-        let mut lines = display_text.split("\n");
-
         let run = TextRun {
             len: display_text.len(),
             font: style.font(),
@@ -448,43 +450,43 @@ impl Element for TextElement {
         let font_size = style.font_size.to_pixels(cx.rem_size());
         let line = cx
             .text_system()
-            .shape_line(display_text, font_size, &runs)
+            .shape_text(display_text, font_size, &runs, Some(Pixels(500.0)))
             .unwrap();
 
-        let cursor_pos = line.x_for_index(cursor);
-        let (selection, cursor) = if selected_range.is_empty() {
-            (
-                None,
-                Some(fill(
-                    Bounds::new(
-                        point(bounds.left() + cursor_pos, bounds.top()),
-                        size(px(2.), bounds.bottom() - bounds.top()),
-                    ),
-                    gpui::blue(),
-                )),
-            )
-        } else {
-            (
-                Some(fill(
-                    Bounds::from_corners(
-                        point(
-                            bounds.left() + line.x_for_index(selected_range.start),
-                            bounds.top(),
-                        ),
-                        point(
-                            bounds.left() + line.x_for_index(selected_range.end),
-                            bounds.bottom(),
-                        ),
-                    ),
-                    rgba(0x3311ff30),
-                )),
-                None,
-            )
-        };
+        // let cursor_pos = line.x_for_index(cursor);
+        // let (selection, cursor) = if selected_range.is_empty() {
+        //     (
+        //         None,
+        //         Some(fill(
+        //             Bounds::new(
+        //                 point(bounds.left() + cursor_pos, bounds.top()),
+        //                 size(px(2.), bounds.bottom() - bounds.top()),
+        //             ),
+        //             gpui::blue(),
+        //         )),
+        //     )
+        // } else {
+        //     (
+        //         Some(fill(
+        //             Bounds::from_corners(
+        //                 point(
+        //                     bounds.left() + line.x_for_index(selected_range.start),
+        //                     bounds.top(),
+        //                 ),
+        //                 point(
+        //                     bounds.left() + line.x_for_index(selected_range.end),
+        //                     bounds.bottom(),
+        //                 ),
+        //             ),
+        //             rgba(0x3311ff30),
+        //         )),
+        //         None,
+        //     )
+        // };
         PrepaintState {
-            line: Some(line),
-            cursor,
-            selection,
+            lines: Some(line),
+            cursor: None,    //cursor,
+            selection: None, //selection,
         }
     }
 
@@ -504,19 +506,20 @@ impl Element for TextElement {
         if let Some(selection) = prepaint.selection.take() {
             cx.paint_quad(selection)
         }
-        let line = prepaint.line.take().unwrap();
-        line.paint(bounds.origin, cx.line_height(), cx).unwrap();
+        for line in prepaint.lines.clone().unwrap() {
+            line.paint(bounds.origin, cx.line_height(), cx).unwrap();
 
-        if focus_handle.is_focused(cx) {
-            if let Some(cursor) = prepaint.cursor.take() {
-                cx.paint_quad(cursor);
+            if focus_handle.is_focused(cx) {
+                if let Some(cursor) = prepaint.cursor.take() {
+                    cx.paint_quad(cursor);
+                }
             }
-        }
 
-        self.input.update(cx, |input, _cx| {
-            input.last_layout = Some(line);
-            input.last_bounds = Some(bounds);
-        });
+            self.input.update(cx, |input, _cx| {
+                input.last_layout = Some(line);
+                input.last_bounds = Some(bounds);
+            });
+        }
     }
 }
 
@@ -549,7 +552,7 @@ impl Render for TextInput {
             .text_size(px(24.))
             .child(
                 div()
-                    .h(px(30. + 4. * 2.))
+                    .h(px(300. + 4. * 2.))
                     .w_full()
                     .p(px(4.))
                     .bg(white())

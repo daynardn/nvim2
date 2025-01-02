@@ -4,6 +4,8 @@ Okay so like it's a neovim client but blazingly fast (tm)
 
 Easy plugins in lua and dig into engine source performance with rust (goated idea?)
 
+UNDO SELECTIONS, let me select, operation undo and still selected
+
 So it's like neovim but uses the gpui
 NO NEEDED CONFIG FILE, everything *just works tm*
 Lsp is BAKED in and *very* easy to add, 

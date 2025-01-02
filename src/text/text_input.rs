@@ -1,8 +1,5 @@
 use std::{ops::Range, sync::Arc};
 
-use smallvec::SmallVec;
-use unicode_segmentation::*;
-
 use gpui::{
     actions, black, div, fill, hsla, opaque_grey, point, prelude::*, px, relative, rgb, rgba, size,
     white, yellow, App, AppContext, Bounds, ClipboardItem, CursorStyle, ElementId,
@@ -12,6 +9,8 @@ use gpui::{
     UnderlineStyle, View, ViewContext, ViewInputHandler, WindowBounds, WindowContext,
     WindowOptions, WrappedLine,
 };
+use smallvec::SmallVec;
+use unicode_segmentation::*;
 
 actions!(
     text_input,
@@ -355,6 +354,7 @@ impl ViewInputHandler for TextInput {
 
 struct TextElement {
     input: View<TextInput>,
+    lines_pixels: Pixels, // wrapped not \n
 }
 
 struct PrepaintState {
@@ -387,13 +387,14 @@ impl Element for TextElement {
     ) -> (LayoutId, Self::RequestLayoutState) {
         let mut style = Style::default();
         style.size.width = relative(1.).into();
-        style.size.height = cx.line_height().into();
+        style.size.height = (self.lines_pixels).into();
+
         (cx.request_layout(style, []), ())
     }
 
     fn prepaint(
         &mut self,
-        _id: Option<&GlobalElementId>,
+        id: Option<&GlobalElementId>,
         bounds: Bounds<Pixels>,
         _request_layout: &mut Self::RequestLayoutState,
         cx: &mut WindowContext,
@@ -444,6 +445,7 @@ impl Element for TextElement {
         } else {
             vec![run]
         };
+        // println!("{}", display_text);
 
         let font_size = style.font_size.to_pixels(cx.rem_size());
         let line = cx
@@ -492,7 +494,7 @@ impl Element for TextElement {
 
     fn paint(
         &mut self,
-        _id: Option<&GlobalElementId>,
+        id: Option<&GlobalElementId>,
         bounds: Bounds<Pixels>,
         _request_layout: &mut Self::RequestLayoutState,
         prepaint: &mut Self::PrepaintState,
@@ -508,6 +510,7 @@ impl Element for TextElement {
         }
         for line in prepaint.lines.clone().unwrap() {
             println!("new line");
+            // self.line_size[0] = line.size(cx.line_height());
             line.paint(bounds.origin, cx.line_height(), cx).unwrap();
 
             if focus_handle.is_focused(cx) {
@@ -516,6 +519,8 @@ impl Element for TextElement {
                 }
             }
 
+            self.lines_pixels = line.size(cx.line_height()).height;
+            self.request_layout(id, cx);
             self.input.update(cx, |input, _cx| {
                 input.last_layout = Some(line);
                 input.last_bounds = Some(bounds);
@@ -551,16 +556,29 @@ impl Render for TextInput {
             .bg(rgb(0xeeeeee))
             .line_height(px(30.))
             .text_size(px(24.))
-            .child(
+            // .child(
+            //     div()
+            //         .h(px(300. + 4. * 2.))
+            //         .w_full()
+            //         .p(px(4.))
+            //         .bg(white())
+            //         .child(TextElement {
+            //             input: cx.view().clone(),
+            //         }),
+            // )
+            .child(div().flex_col().children((0..10).map(|i| {
                 div()
-                    .h(px(300. + 4. * 2.))
+                    .flex_col()
+                    // .h(px(30. + 4. * 2.))
+                    // .border_y(px(i as f32 * 30.))
                     .w_full()
-                    .p(px(4.))
+                    //.p(px(4.))
                     .bg(white())
                     .child(TextElement {
                         input: cx.view().clone(),
-                    }),
-            )
+                        lines_pixels: px(30.),
+                    })
+            })))
     }
 }
 

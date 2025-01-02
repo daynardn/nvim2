@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 tokio = "1.42.0"
 gpui = { git = "https://github.com/zed-industries/zed" }
+unicode-segmentation = "1.12.0"

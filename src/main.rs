@@ -1,10 +1,10 @@
 use gpui::{div, prelude::*, rgb, App, AppContext, SharedString, ViewContext, WindowOptions};
 
-struct HelloWorld {
+struct Window {
     text: SharedString,
 }
 
-impl Render for HelloWorld {
+impl Render for Window {
     fn render(&mut self, _cx: &mut ViewContext<Self>) -> impl IntoElement {
         div()
             .flex()
@@ -12,16 +12,14 @@ impl Render for HelloWorld {
             .size_full()
             .justify_center()
             .items_center()
-            .text_xl()
-            .text_color(rgb(0xffffff))
-            .child(format!("Hello, {}!", &self.text))
+        // .children(files, tabbar)
     }
 }
 
 fn main() {
     App::new().run(|cx: &mut AppContext| {
         cx.open_window(WindowOptions::default(), |cx| {
-            cx.new_view(|_cx| HelloWorld {
+            cx.new_view(|_cx| Window {
                 text: "World".into(),
             })
         })

@@ -386,8 +386,29 @@ impl Element for TextElement {
         cx: &mut WindowContext,
     ) -> (LayoutId, Self::RequestLayoutState) {
         let mut style = Style::default();
+        let t_style = cx.text_style();
+
         style.size.width = relative(1.).into();
-        style.size.height = (self.lines_pixels).into();
+        // self.input.read(cx).content.
+        let input = self.input.read(cx);
+        let content = input.content.clone();
+        let run = TextRun {
+            len: content.len(),
+            font: t_style.font(),
+            color: t_style.color,
+            background_color: None,
+            underline: None,
+            strikethrough: None,
+        };
+        let font_size = px(24.);
+        let line = cx
+            .text_system()
+            .shape_text(content, font_size, 
+                &vec![run], Some(Pixels(500.0)))
+            .unwrap();
+        
+        // style.size.height = (self.lines_pixels).into();
+        style.size.height = line[0].size(cx.line_height()).height.into();
 
         (cx.request_layout(style, []), ())
     }

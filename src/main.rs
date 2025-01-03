@@ -52,6 +52,7 @@ fn main() {
             KeyBinding::new("home", Home, None),
             KeyBinding::new("end", End, None),
             KeyBinding::new("ctrl-cmd-space", ShowCharacterPalette, None),
+            KeyBinding::new("ctrl-s", Save, None),
         ]);
 
         let lines = load_file(env::current_dir().unwrap().as_os_str().to_str().unwrap().to_owned() + "/test/test.txt");

@@ -1,9 +1,11 @@
-use std::ops::Range;
+use std::{env, ops::Range};
 
 use gpui::{
     actions, point, Bounds, ClipboardItem, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Point, UTF16Selection, ViewContext, ViewInputHandler,
 };
 use unicode_segmentation::*;
+
+use crate::files::files::save;
 
 use super::text::TextInput;
 
@@ -25,10 +27,15 @@ actions!(
         Paste,
         Cut,
         Copy,
+        Save,
     ]
 );
 
 impl TextInput {
+    pub fn save (&mut self, _: &Save, _cx: &mut ViewContext<Self>) {
+        println!("saved");
+        save(env::current_dir().unwrap().as_os_str().to_str().unwrap().to_owned() + "/test/test.txt", self.content.clone());
+    }
     pub fn down(&mut self, _: &Down, _cx: &mut ViewContext<Self>) {
         self.focused_line += 1;
         self.selected_range = 0..0;

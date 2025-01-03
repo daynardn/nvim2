@@ -1,4 +1,4 @@
-use std::{fs::File, io::Read};
+use std::{fs::File, io::{Read, Write}};
 
 use gpui::SharedString;
 
@@ -17,4 +17,15 @@ pub fn load_file(path: String) -> Vec<SharedString>{
     let parts: Vec<String> = buf.split(&"\n".to_string()).map(str::to_string).collect();
     // convert to shared string
     return parts.into_iter().map(Into::into).collect(); 
+}
+
+pub fn save(path: String, lines: Vec<SharedString>) {
+    let file =  File::open(path.clone());
+    if file.is_err() {
+        println!("{}", path + " NOT FOUND");
+    }
+    let mut file = file.unwrap();
+    for line in lines {
+        file.write(line.as_bytes()).expect("Unable to write data");
+    }
 }

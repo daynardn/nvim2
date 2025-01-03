@@ -1,9 +1,5 @@
 use gpui::{
-    div, fill, hsla, point, prelude::*, px, relative, rgb, rgba, size,
-    white, Bounds, CursorStyle, ElementId,
-    ElementInputHandler, FocusableView, GlobalElementId,
-    LayoutId, MouseButton, PaintQuad, Pixels, Style, TextRun,
-    UnderlineStyle, ViewContext, WindowContext, WrappedLine,
+    div, fill, hsla, point, prelude::*, px, relative, rgb, rgba, size, white, Bounds, CursorStyle, ElementId, ElementInputHandler, FocusableView, GlobalElementId, LayoutId, MouseButton, PaintQuad, Pixels, Point, Style, TextRun, UnderlineStyle, ViewContext, WindowContext, WrappedLine
 };
 
 use super::text::{TextElement, TextInput};
@@ -165,14 +161,14 @@ impl Element for TextElement {
             .shape_text(display_text, font_size, &runs, Some(Pixels(500.0)))
             .unwrap();
 
-        let cursor_pos = line[0].unwrapped_layout.x_for_index(cursor);
+        let cursor_pos = line[0].position_for_index(cursor, cx.line_height()).unwrap_or(Point { x: px(0.), y: px(0.) });
         let (mut selection, mut cursor) = if selected_range.is_empty() {
             (
                 None,
                 Some(fill(
                     Bounds::new(
-                        point(bounds.left() + cursor_pos, bounds.top()),
-                        size(px(2.), bounds.bottom() - bounds.top()),
+                        point(bounds.left() + cursor_pos.x, bounds.top() + cursor_pos.y),
+                        size(px(2.), cx.line_height()),
                     ),
                     gpui::blue(),
                 )),

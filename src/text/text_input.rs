@@ -12,6 +12,8 @@ use gpui::{
 use smallvec::SmallVec;
 use unicode_segmentation::*;
 
+use super::text::TextInput;
+
 actions!(
     text_input,
     [
@@ -33,21 +35,8 @@ actions!(
     ]
 );
 
-pub struct TextInput {
-    pub focus_handle: FocusHandle,
-    pub focused_line: usize,
-    pub content: Vec<SharedString>,
-    pub placeholder: SharedString,
-    pub selected_range: Range<usize>,
-    pub selection_reversed: bool,
-    pub marked_range: Option<Range<usize>>,
-    pub last_layout: Option<WrappedLine>,
-    pub last_bounds: Option<Bounds<Pixels>>,
-    pub is_selecting: bool,
-}
-
 impl TextInput {
-    fn down(&mut self, _: &Down, cx: &mut ViewContext<Self>) {
+    pub fn down(&mut self, _: &Down, cx: &mut ViewContext<Self>) {
         self.focused_line += 1;
         self.selected_range = 0..0;
         self.selection_reversed = false;
@@ -57,7 +46,7 @@ impl TextInput {
         self.is_selecting = false;
         // println!("{}", self.content[self.focused_line]);
     }
-    fn up(&mut self, _: &Up, cx: &mut ViewContext<Self>) {
+    pub fn up(&mut self, _: &Up, cx: &mut ViewContext<Self>) {
         self.focused_line -= 1;
         self.selected_range = 0..0;
         self.selection_reversed = false;
@@ -66,7 +55,7 @@ impl TextInput {
         self.last_bounds = None;
         self.is_selecting = false;
     }
-    fn left(&mut self, _: &Left, cx: &mut ViewContext<Self>) {
+    pub fn left(&mut self, _: &Left, cx: &mut ViewContext<Self>) {
         if self.selected_range.is_empty() {
             self.move_to(self.previous_boundary(self.cursor_offset()), cx);
         } else {
@@ -76,7 +65,7 @@ impl TextInput {
         // self.content[self.focused_line] = (self.content[self.focused_line][0..self.content[self.focused_line].len()].to_owned() + "\n").into();
     }
 
-    fn right(&mut self, _: &Right, cx: &mut ViewContext<Self>) {
+    pub fn right(&mut self, _: &Right, cx: &mut ViewContext<Self>) {
         if self.selected_range.is_empty() {
             self.move_to(self.next_boundary(self.selected_range.end), cx);
         } else {
@@ -84,42 +73,42 @@ impl TextInput {
         }
     }
 
-    fn select_left(&mut self, _: &SelectLeft, cx: &mut ViewContext<Self>) {
+    pub fn select_left(&mut self, _: &SelectLeft, cx: &mut ViewContext<Self>) {
         self.select_to(self.previous_boundary(self.cursor_offset()), cx);
     }
 
-    fn select_right(&mut self, _: &SelectRight, cx: &mut ViewContext<Self>) {
+    pub fn select_right(&mut self, _: &SelectRight, cx: &mut ViewContext<Self>) {
         self.select_to(self.next_boundary(self.cursor_offset()), cx);
     }
 
-    fn select_all(&mut self, _: &SelectAll, cx: &mut ViewContext<Self>) {
+    pub fn select_all(&mut self, _: &SelectAll, cx: &mut ViewContext<Self>) {
         self.move_to(0, cx);
         self.select_to(self.content[self.focused_line].len(), cx)
     }
 
-    fn home(&mut self, _: &Home, cx: &mut ViewContext<Self>) {
+    pub fn home(&mut self, _: &Home, cx: &mut ViewContext<Self>) {
         self.move_to(0, cx);
     }
 
-    fn end(&mut self, _: &End, cx: &mut ViewContext<Self>) {
+    pub fn end(&mut self, _: &End, cx: &mut ViewContext<Self>) {
         self.move_to(self.content[self.focused_line].len(), cx);
     }
 
-    fn backspace(&mut self, _: &Backspace, cx: &mut ViewContext<Self>) {
+    pub fn backspace(&mut self, _: &Backspace, cx: &mut ViewContext<Self>) {
         if self.selected_range.is_empty() {
             self.select_to(self.previous_boundary(self.cursor_offset()), cx)
         }
         self.replace_text_in_range(None, "", cx)
     }
 
-    fn delete(&mut self, _: &Delete, cx: &mut ViewContext<Self>) {
+    pub fn delete(&mut self, _: &Delete, cx: &mut ViewContext<Self>) {
         if self.selected_range.is_empty() {
             self.select_to(self.next_boundary(self.cursor_offset()), cx)
         }
         self.replace_text_in_range(None, "", cx)
     }
 
-    fn on_mouse_down(&mut self, event: &MouseDownEvent, cx: &mut ViewContext<Self>) {
+    pub fn on_mouse_down(&mut self, event: &MouseDownEvent, cx: &mut ViewContext<Self>) {
         self.is_selecting = true;
 
         if event.modifiers.shift {
@@ -129,34 +118,34 @@ impl TextInput {
         }
     }
 
-    fn on_mouse_up(&mut self, _: &MouseUpEvent, _: &mut ViewContext<Self>) {
+    pub fn on_mouse_up(&mut self, _: &MouseUpEvent, _: &mut ViewContext<Self>) {
         self.is_selecting = false;
     }
 
-    fn on_mouse_move(&mut self, event: &MouseMoveEvent, cx: &mut ViewContext<Self>) {
+    pub fn on_mouse_move(&mut self, event: &MouseMoveEvent, cx: &mut ViewContext<Self>) {
         if self.is_selecting {
             self.select_to(self.index_for_mouse_position(event.position), cx);
         }
     }
 
-    fn show_character_palette(&mut self, _: &ShowCharacterPalette, cx: &mut ViewContext<Self>) {
+    pub fn show_character_palette(&mut self, _: &ShowCharacterPalette, cx: &mut ViewContext<Self>) {
         cx.show_character_palette();
     }
 
-    fn paste(&mut self, _: &Paste, cx: &mut ViewContext<Self>) {
+    pub fn paste(&mut self, _: &Paste, cx: &mut ViewContext<Self>) {
         if let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) {
             self.replace_text_in_range(None, &text.replace("\n", " "), cx);
         }
     }
 
-    fn copy(&mut self, _: &Copy, cx: &mut ViewContext<Self>) {
+    pub fn copy(&mut self, _: &Copy, cx: &mut ViewContext<Self>) {
         if !self.selected_range.is_empty() {
             cx.write_to_clipboard(ClipboardItem::new_string(
                 (&self.content[self.focused_line][self.selected_range.clone()]).to_string(),
             ));
         }
     }
-    fn cut(&mut self, _: &Copy, cx: &mut ViewContext<Self>) {
+    pub fn cut(&mut self, _: &Copy, cx: &mut ViewContext<Self>) {
         if !self.selected_range.is_empty() {
             cx.write_to_clipboard(ClipboardItem::new_string(
                 (&self.content[self.focused_line][self.selected_range.clone()]).to_string(),
@@ -165,12 +154,12 @@ impl TextInput {
         }
     }
 
-    fn move_to(&mut self, offset: usize, cx: &mut ViewContext<Self>) {
+    pub fn move_to(&mut self, offset: usize, cx: &mut ViewContext<Self>) {
         self.selected_range = offset..offset;
         cx.notify()
     }
 
-    fn cursor_offset(&self) -> usize {
+    pub fn cursor_offset(&self) -> usize {
         if self.selection_reversed {
             self.selected_range.start
         } else {
@@ -178,7 +167,7 @@ impl TextInput {
         }
     }
 
-    fn index_for_mouse_position(&self, position: Point<Pixels>) -> usize {
+    pub fn index_for_mouse_position(&self, position: Point<Pixels>) -> usize {
         if self.content[self.focused_line].is_empty() {
             return 0;
         }
@@ -197,7 +186,7 @@ impl TextInput {
             .closest_index_for_x(position.x - bounds.left())
     }
 
-    fn select_to(&mut self, offset: usize, cx: &mut ViewContext<Self>) {
+    pub fn select_to(&mut self, offset: usize, cx: &mut ViewContext<Self>) {
         if self.selection_reversed {
             self.selected_range.start = offset
         } else {
@@ -210,7 +199,7 @@ impl TextInput {
         cx.notify()
     }
 
-    fn offset_from_utf16(&self, offset: usize) -> usize {
+    pub fn offset_from_utf16(&self, offset: usize) -> usize {
         let mut utf8_offset = 0;
         let mut utf16_count = 0;
 
@@ -225,7 +214,7 @@ impl TextInput {
         utf8_offset
     }
 
-    fn offset_to_utf16(&self, offset: usize) -> usize {
+    pub fn offset_to_utf16(&self, offset: usize) -> usize {
         let mut utf16_offset = 0;
         let mut utf8_count = 0;
 
@@ -374,18 +363,6 @@ impl ViewInputHandler for TextInput {
     }
 }
 
-struct TextElement {
-    input: View<TextInput>,
-    lines_pixels: Pixels, // wrapped not \n
-    id: usize,
-}
-
-struct PrepaintState {
-    lines: Option<smallvec::SmallVec<[WrappedLine; 1]>>,
-    cursor: Option<PaintQuad>,
-    selection: Option<PaintQuad>,
-}
-
 impl IntoElement for TextElement {
     type Element = Self;
 
@@ -394,240 +371,11 @@ impl IntoElement for TextElement {
     }
 }
 
-impl Element for TextElement {
-    type RequestLayoutState = ();
 
-    type PrepaintState = PrepaintState;
-
-    fn id(&self) -> Option<ElementId> {
-        None
-    }
-
-    fn request_layout(
-        &mut self,
-        _id: Option<&GlobalElementId>,
-        cx: &mut WindowContext,
-    ) -> (LayoutId, Self::RequestLayoutState) {
-        let mut style = Style::default();
-        let t_style = cx.text_style();
-
-        style.size.width = relative(1.).into();
-        // self.input.read(cx).content.
-        let input = self.input.read(cx);
-        let content = input.content[self.id].clone();
-        
-        let run = TextRun {
-            len: content.len(),
-            font: t_style.font(),
-            color: t_style.color,
-            background_color: None,
-            underline: None,
-            strikethrough: None,
-        };
-        let font_size = px(24.);
-        let line = cx
-            .text_system()
-            .shape_text(content, font_size, 
-                &vec![run], Some(Pixels(500.0)))
-            .unwrap();
-        
-        // style.size.height = (self.lines_pixels).into();
-        style.size.height = line[0].size(cx.line_height()).height.into();
-
-        (cx.request_layout(style, []), ())
-    }
-
-    fn prepaint(
-        &mut self,
-        id: Option<&GlobalElementId>,
-        bounds: Bounds<Pixels>,
-        _request_layout: &mut Self::RequestLayoutState,
-        cx: &mut WindowContext,
-    ) -> Self::PrepaintState {
-        let input = self.input.read(cx);
-        let content = input.content[self.id].clone();
-        let selected_range = input.selected_range.clone();
-        let cursor = input.cursor_offset();
-        let style = cx.text_style();
-
-        let (display_text, text_color) = if content.is_empty() {
-            (input.placeholder.clone(), hsla(0., 0., 0., 0.2))
-        } else {
-            (content.clone(), style.color)
-        };
-
-        let run = TextRun {
-            len: display_text.len(),
-            font: style.font(),
-            color: text_color,
-            background_color: None,
-            underline: None,
-            strikethrough: None,
-        };
-        let runs = if let Some(marked_range) = input.marked_range.as_ref() {
-            vec![
-                TextRun {
-                    len: marked_range.start,
-                    ..run.clone()
-                },
-                TextRun {
-                    len: marked_range.end - marked_range.start,
-                    underline: Some(UnderlineStyle {
-                        color: Some(run.color),
-                        thickness: px(1.0),
-                        wavy: false,
-                    }),
-                    ..run.clone()
-                },
-                TextRun {
-                    len: display_text.len() - marked_range.end,
-                    ..run.clone()
-                },
-            ]
-            .into_iter()
-            .filter(|run| run.len > 0)
-            .collect()
-        } else {
-            vec![run]
-        };
-        // println!("{}", display_text);
-
-        let font_size = style.font_size.to_pixels(cx.rem_size());
-        let line = cx
-            .text_system()
-            .shape_text(display_text, font_size, &runs, Some(Pixels(500.0)))
-            .unwrap();
-
-        let cursor_pos = line[0].unwrapped_layout.x_for_index(cursor);
-        let (mut selection, mut cursor) = if selected_range.is_empty() {
-            (
-                None,
-                Some(fill(
-                    Bounds::new(
-                        point(bounds.left() + cursor_pos, bounds.top()),
-                        size(px(2.), bounds.bottom() - bounds.top()),
-                    ),
-                    gpui::blue(),
-                )),
-            )
-        } else {
-            (
-                Some(fill(
-                    Bounds::from_corners(
-                        point(
-                            bounds.left()
-                                + line[0].unwrapped_layout.x_for_index(selected_range.start),
-                            bounds.top(),
-                        ),
-                        point(
-                            bounds.left()
-                                + line[0].unwrapped_layout.x_for_index(selected_range.end),
-                            bounds.bottom(),
-                        ),
-                    ),
-                    rgba(0x3311ff30),
-                )),
-                None,
-            )
-        };
-
-        if self.input.read(cx).focused_line != self.id {
-            cursor = None;
-            selection = None;
-        }
-
-        PrepaintState {
-            lines: Some(line),
-            cursor,
-            selection,
-        }
-    }
-
-    fn paint(
-        &mut self,
-        id: Option<&GlobalElementId>,
-        bounds: Bounds<Pixels>,
-        _request_layout: &mut Self::RequestLayoutState,
-        prepaint: &mut Self::PrepaintState,
-        cx: &mut WindowContext,
-    ) {
-        let focus_handle = self.input.read(cx).focus_handle.clone();
-        if self.input.read(cx).focused_line == self.id {
-            cx.handle_input(
-                &focus_handle,
-                ElementInputHandler::new(bounds, self.input.clone()),
-            );
-        }
-        if let Some(selection) = prepaint.selection.take() {
-            cx.paint_quad(selection)
-        }
-        for line in prepaint.lines.clone().unwrap() {
-            // self.line_size[0] = line.size(cx.line_height());
-            line.paint(bounds.origin, cx.line_height(), cx).unwrap();
-
-            if focus_handle.is_focused(cx) {
-                if let Some(cursor) = prepaint.cursor.take() {
-                    cx.paint_quad(cursor);
-                }
-            }
-
-            self.lines_pixels = line.size(cx.line_height()).height;
-            self.request_layout(id, cx);
-
-            if self.input.read(cx).focused_line == self.id { 
-                self.input.update(cx, |input, _cx| {
-                    input.last_layout = Some(line);
-                    input.last_bounds = Some(bounds);
-                });
-            }
-        }
-    }
-}
-
-impl Render for TextInput {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
-        div()
-            .flex()
-            .key_context("TextInput")
-            .track_focus(&self.focus_handle(cx))
-            .cursor(CursorStyle::IBeam)
-            .on_action(cx.listener(Self::backspace))
-            .on_action(cx.listener(Self::delete))
-            .on_action(cx.listener(Self::up))
-            .on_action(cx.listener(Self::down))
-            .on_action(cx.listener(Self::left))
-            .on_action(cx.listener(Self::right))
-            .on_action(cx.listener(Self::select_left))
-            .on_action(cx.listener(Self::select_right))
-            .on_action(cx.listener(Self::select_all))
-            .on_action(cx.listener(Self::home))
-            .on_action(cx.listener(Self::end))
-            .on_action(cx.listener(Self::show_character_palette))
-            .on_action(cx.listener(Self::paste))
-            .on_action(cx.listener(Self::cut))
-            .on_action(cx.listener(Self::copy))
-            .on_mouse_down(MouseButton::Left, cx.listener(Self::on_mouse_down))
-            .on_mouse_up(MouseButton::Left, cx.listener(Self::on_mouse_up))
-            .on_mouse_up_out(MouseButton::Left, cx.listener(Self::on_mouse_up))
-            .on_mouse_move(cx.listener(Self::on_mouse_move))
-            .bg(rgb(0xeeeeee))
-            .line_height(px(30.))
-            .text_size(px(24.))
-            .child(div().flex_col().children((0..10).map(|i| {
-                div()
-                    .flex_col()
-                    // .h(px(30. + 4. * 2.))
-                    // .border_y(px(i as f32 * 30.))
-                    .w_full()
-                    //.p(px(4.))
-                    .bg(white())
-                    .child(TextElement {
-                        input: cx.view().clone(),
-                        lines_pixels: px(30.),
-                        id: i,
-                    })
-            })))
-    }
+pub struct TextElement {
+    pub input: View<TextInput>,
+    pub lines_pixels: Pixels, // wrapped not \n
+    pub id: usize,
 }
 
 impl FocusableView for TextInput {

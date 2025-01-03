@@ -5,6 +5,7 @@ use gpui::{
     div, prelude::*, px, rgb, size, App, AppContext, Bounds, FocusHandle, FocusableView,
     KeyBinding, Keystroke, MouseUpEvent, View, ViewContext, WindowBounds, WindowOptions,
 };
+use text::text::TextInput;
 
 struct InputExample {
     text_input: View<TextInput>,
@@ -60,17 +61,17 @@ impl Render for InputExample {
             //         ),
             // )
             .child(self.text_input.clone())
-            .children(self.recent_keystrokes.iter().rev().map(|ks| {
-                format!(
-                    "{:} {}",
-                    ks.unparse(),
-                    if let Some(key_char) = ks.key_char.as_ref() {
-                        format!("-> {:?}", key_char)
-                    } else {
-                        "".to_owned()
-                    }
-                )
-            }))
+            // .children(self.recent_keystrokes.iter().rev().map(|ks| {
+            //     format!(
+            //         "{:} {}",
+            //         ks.unparse(),
+            //         if let Some(key_char) = ks.key_char.as_ref() {
+            //             format!("-> {:?}", key_char)
+            //         } else {
+            //             "".to_owned()
+            //         }
+            //     )
+            // }))
     }
 }
 

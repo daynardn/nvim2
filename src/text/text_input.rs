@@ -13,6 +13,7 @@ actions!(
     text_input,
     [
         Backspace,
+        Enter,
         Delete,
         Up,
         Down,
@@ -32,6 +33,15 @@ actions!(
 );
 
 impl TextInput {
+    pub fn enter (&mut self, _: &Enter, cx: &mut ViewContext<Self>) {
+        let range = self.selected_text_range(false, cx).unwrap().range;
+
+        self.content.insert(self.focused_line + 1, self.content[self.focused_line][range.end..].to_owned().into());
+        self.content[self.focused_line] = self.content[self.focused_line][0..range.start].to_owned().into(); 
+
+        self.focused_line += 1;
+        // self.cursor_pos = 0;
+    }
     pub fn save (&mut self, _: &Save, _cx: &mut ViewContext<Self>) {
         println!("saved");
         save(env::current_dir().unwrap().as_os_str().to_str().unwrap().to_owned() + "/test/test.txt", self.content.clone());

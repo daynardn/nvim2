@@ -37,6 +37,7 @@ fn main() {
     App::new().run(|cx: &mut AppContext| {
         let bounds = Bounds::centered(None, size(px(300.0), px(300.0)), cx);
         cx.bind_keys([
+            KeyBinding::new("enter", Enter, None),
             KeyBinding::new("backspace", Backspace, None),
             KeyBinding::new("delete", Delete, None),
             KeyBinding::new("up", Up, None),

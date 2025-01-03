@@ -33,8 +33,8 @@ actions!(
 
 pub struct TextInput {
     pub focus_handle: FocusHandle,
-    pub focused_line: i32,
-    pub content: SharedString,
+    pub focused_line: usize,
+    pub content: Vec<SharedString>,
     pub placeholder: SharedString,
     pub selected_range: Range<usize>,
     pub selection_reversed: bool,
@@ -46,13 +46,22 @@ pub struct TextInput {
 
 impl TextInput {
     fn left(&mut self, _: &Left, cx: &mut ViewContext<Self>) {
-        if self.selected_range.is_empty() {
-            self.move_to(self.previous_boundary(self.cursor_offset()), cx);
-        } else {
-            self.move_to(self.selected_range.start, cx)
-        }
+        // if self.selected_range.is_empty() {
+        //     self.move_to(self.previous_boundary(self.cursor_offset()), cx);
+        // } else {
+        //     self.move_to(self.selected_range.start, cx)
+        // }
+        self.focused_line += 1;
+        println!("{}", self.focused_line);
+        self.content[self.focused_line] = "".into();
+        self.selected_range = 0..0;
+        self.selection_reversed = false;
+        self.marked_range = None;
+        self.last_layout = None;
+        self.last_bounds = None;
+        self.is_selecting = false;
 
-        // self.content = (self.content[0..self.content.len()].to_owned() + "\n").into();
+        // self.content[self.focused_line] = (self.content[self.focused_line][0..self.content[self.focused_line].len()].to_owned() + "\n").into();
     }
 
     fn right(&mut self, _: &Right, cx: &mut ViewContext<Self>) {
@@ -73,7 +82,7 @@ impl TextInput {
 
     fn select_all(&mut self, _: &SelectAll, cx: &mut ViewContext<Self>) {
         self.move_to(0, cx);
-        self.select_to(self.content.len(), cx)
+        self.select_to(self.content[self.focused_line].len(), cx)
     }
 
     fn home(&mut self, _: &Home, cx: &mut ViewContext<Self>) {
@@ -81,7 +90,7 @@ impl TextInput {
     }
 
     fn end(&mut self, _: &End, cx: &mut ViewContext<Self>) {
-        self.move_to(self.content.len(), cx);
+        self.move_to(self.content[self.focused_line].len(), cx);
     }
 
     fn backspace(&mut self, _: &Backspace, cx: &mut ViewContext<Self>) {
@@ -131,14 +140,14 @@ impl TextInput {
     fn copy(&mut self, _: &Copy, cx: &mut ViewContext<Self>) {
         if !self.selected_range.is_empty() {
             cx.write_to_clipboard(ClipboardItem::new_string(
-                (&self.content[self.selected_range.clone()]).to_string(),
+                (&self.content[self.focused_line][self.selected_range.clone()]).to_string(),
             ));
         }
     }
     fn cut(&mut self, _: &Copy, cx: &mut ViewContext<Self>) {
         if !self.selected_range.is_empty() {
             cx.write_to_clipboard(ClipboardItem::new_string(
-                (&self.content[self.selected_range.clone()]).to_string(),
+                (&self.content[self.focused_line][self.selected_range.clone()]).to_string(),
             ));
             self.replace_text_in_range(None, "", cx)
         }
@@ -158,7 +167,7 @@ impl TextInput {
     }
 
     fn index_for_mouse_position(&self, position: Point<Pixels>) -> usize {
-        if self.content.is_empty() {
+        if self.content[self.focused_line].is_empty() {
             return 0;
         }
 
@@ -170,7 +179,7 @@ impl TextInput {
             return 0;
         }
         if position.y > bounds.bottom() {
-            return self.content.len();
+            return self.content[self.focused_line].len();
         }
         line.unwrapped_layout
             .closest_index_for_x(position.x - bounds.left())
@@ -193,7 +202,7 @@ impl TextInput {
         let mut utf8_offset = 0;
         let mut utf16_count = 0;
 
-        for ch in self.content.chars() {
+        for ch in self.content[self.focused_line].chars() {
             if utf16_count >= offset {
                 break;
             }
@@ -208,7 +217,7 @@ impl TextInput {
         let mut utf16_offset = 0;
         let mut utf8_count = 0;
 
-        for ch in self.content.chars() {
+        for ch in self.content[self.focused_line].chars() {
             if utf8_count >= offset {
                 break;
             }
@@ -228,7 +237,7 @@ impl TextInput {
     }
 
     fn previous_boundary(&self, offset: usize) -> usize {
-        self.content
+        self.content[self.focused_line]
             .grapheme_indices(true)
             .rev()
             .find_map(|(idx, _)| (idx < offset).then_some(idx))
@@ -236,14 +245,14 @@ impl TextInput {
     }
 
     fn next_boundary(&self, offset: usize) -> usize {
-        self.content
+        self.content[self.focused_line]
             .grapheme_indices(true)
             .find_map(|(idx, _)| (idx > offset).then_some(idx))
-            .unwrap_or(self.content.len())
+            .unwrap_or(self.content[self.focused_line].len())
     }
 
     pub fn reset(&mut self) {
-        self.content = "".into();
+        self.content[self.focused_line] = "".into();
         self.selected_range = 0..0;
         self.selection_reversed = false;
         self.marked_range = None;
@@ -262,7 +271,7 @@ impl ViewInputHandler for TextInput {
     ) -> Option<String> {
         let range = self.range_from_utf16(&range_utf16);
         actual_range.replace(self.range_to_utf16(&range));
-        Some(self.content[range].to_string())
+        Some(self.content[self.focused_line][range].to_string())
     }
 
     fn selected_text_range(
@@ -298,8 +307,8 @@ impl ViewInputHandler for TextInput {
             .or(self.marked_range.clone())
             .unwrap_or(self.selected_range.clone());
 
-        self.content =
-            (self.content[0..range.start].to_owned() + new_text + &self.content[range.end..])
+        self.content[self.focused_line] =
+            (self.content[self.focused_line][0..range.start].to_owned() + new_text + &self.content[self.focused_line][range.end..])
                 .into();
         self.selected_range = range.start + new_text.len()..range.start + new_text.len();
         self.marked_range.take();
@@ -319,8 +328,8 @@ impl ViewInputHandler for TextInput {
             .or(self.marked_range.clone())
             .unwrap_or(self.selected_range.clone());
 
-        self.content =
-            (self.content[0..range.start].to_owned() + new_text + &self.content[range.end..])
+        self.content[self.focused_line] =
+            (self.content[self.focused_line][0..range.start].to_owned() + new_text + &self.content[self.focused_line][range.end..])
                 .into();
         self.marked_range = Some(range.start..range.start + new_text.len());
         self.selected_range = new_selected_range_utf16
@@ -356,7 +365,7 @@ impl ViewInputHandler for TextInput {
 struct TextElement {
     input: View<TextInput>,
     lines_pixels: Pixels, // wrapped not \n
-    id: i32,
+    id: usize,
 }
 
 struct PrepaintState {
@@ -393,7 +402,8 @@ impl Element for TextElement {
         style.size.width = relative(1.).into();
         // self.input.read(cx).content.
         let input = self.input.read(cx);
-        let content = input.content.clone();
+        let content = input.content[self.id].clone();
+        
         let run = TextRun {
             len: content.len(),
             font: t_style.font(),
@@ -423,7 +433,7 @@ impl Element for TextElement {
         cx: &mut WindowContext,
     ) -> Self::PrepaintState {
         let input = self.input.read(cx);
-        let content = input.content.clone();
+        let content = input.content[self.id].clone();
         let selected_range = input.selected_range.clone();
         let cursor = input.cursor_offset();
         let style = cx.text_style();
@@ -530,10 +540,12 @@ impl Element for TextElement {
         cx: &mut WindowContext,
     ) {
         let focus_handle = self.input.read(cx).focus_handle.clone();
-        cx.handle_input(
-            &focus_handle,
-            ElementInputHandler::new(bounds, self.input.clone()),
-        );
+        if self.input.read(cx).focused_line == self.id {
+            cx.handle_input(
+                &focus_handle,
+                ElementInputHandler::new(bounds, self.input.clone()),
+            );
+        }
         if let Some(selection) = prepaint.selection.take() {
             cx.paint_quad(selection)
         }

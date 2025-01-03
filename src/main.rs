@@ -1,11 +1,14 @@
 mod text;
-use crate::text::text_input::*;
+mod files;
 
+use std::env;
+
+use files::files::load_file;
 use gpui::{
     div, prelude::*, px, rgb, size, App, AppContext, Bounds, FocusHandle, FocusableView,
-    KeyBinding, Keystroke, MouseUpEvent, View, ViewContext, WindowBounds, WindowOptions,
+    KeyBinding, View, ViewContext, WindowBounds, WindowOptions,
 };
-use text::text::TextInput;
+use text::{text::TextInput, text_input::*};
 
 struct File {
     text_input: View<TextInput>, // file lines
@@ -51,6 +54,8 @@ fn main() {
             KeyBinding::new("ctrl-cmd-space", ShowCharacterPalette, None),
         ]);
 
+        let lines = load_file(env::current_dir().unwrap().as_os_str().to_str().unwrap().to_owned() + "/test/test.txt");
+
         let window = cx
             .open_window(
                 WindowOptions {
@@ -61,7 +66,8 @@ fn main() {
                     let text_input = cx.new_view(|cx| TextInput {
                         focus_handle: cx.focus_handle(),
                         focused_line: 0,
-                        content: vec!["".into(); 10],
+                        lines: lines.len(),
+                        content: lines,
                         placeholder: "".into(),
                         selected_range: 0..0,
                         selection_reversed: false,
@@ -77,9 +83,9 @@ fn main() {
                 },
             )
             .unwrap();
-        cx.observe_keystrokes(move |ev, cx| {
+        cx.observe_keystrokes(move |_ev, cx| {
             window
-                .update(cx, |view, cx| {
+                .update(cx, |_view, cx| {
                     cx.notify();
                 })
                 .unwrap();

@@ -8,6 +8,7 @@ use gpui::{
 pub struct TextInput {
     pub focus_handle: FocusHandle,
     pub focused_line: usize,
+    pub lines: usize,
     pub content: Vec<SharedString>,
     pub placeholder: SharedString,
     pub selected_range: Range<usize>,

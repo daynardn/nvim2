@@ -33,7 +33,7 @@ impl Render for TextInput {
             .bg(rgb(0xeeeeee))
             .line_height(px(30.))
             .text_size(px(24.))
-            .child(div().flex_col().children((0..10).map(|i| {
+            .child(div().flex_col().children((0..self.lines).map(|i| {
                 div()
                     .flex_col()
                     // .h(px(30. + 4. * 2.))

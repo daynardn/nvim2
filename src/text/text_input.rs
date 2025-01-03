@@ -1,15 +1,8 @@
-use std::{ops::Range, sync::Arc};
+use std::ops::Range;
 
 use gpui::{
-    actions, black, div, fill, hsla, opaque_grey, point, prelude::*, px, relative, rgb, rgba, size,
-    white, yellow, App, AppContext, Bounds, ClipboardItem, CursorStyle, ElementId,
-    ElementInputHandler, FocusHandle, FocusableView, GlobalElementId, KeyBinding, Keystroke,
-    LayoutId, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, PaintQuad, Pixels, Point,
-    ShapedLine, SharedString, SharedUri, Style, TextLayout, TextRun, UTF16Selection,
-    UnderlineStyle, View, ViewContext, ViewInputHandler, WindowBounds, WindowContext,
-    WindowOptions, WrappedLine,
+    actions, point, Bounds, ClipboardItem, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Point, UTF16Selection, ViewContext, ViewInputHandler,
 };
-use smallvec::SmallVec;
 use unicode_segmentation::*;
 
 use super::text::TextInput;
@@ -36,7 +29,7 @@ actions!(
 );
 
 impl TextInput {
-    pub fn down(&mut self, _: &Down, cx: &mut ViewContext<Self>) {
+    pub fn down(&mut self, _: &Down, _cx: &mut ViewContext<Self>) {
         self.focused_line += 1;
         self.selected_range = 0..0;
         self.selection_reversed = false;
@@ -46,7 +39,7 @@ impl TextInput {
         self.is_selecting = false;
         // println!("{}", self.content[self.focused_line]);
     }
-    pub fn up(&mut self, _: &Up, cx: &mut ViewContext<Self>) {
+    pub fn up(&mut self, _: &Up, _cx: &mut ViewContext<Self>) {
         self.focused_line -= 1;
         self.selected_range = 0..0;
         self.selection_reversed = false;
@@ -61,8 +54,6 @@ impl TextInput {
         } else {
             self.move_to(self.selected_range.start, cx)
         }
-
-        // self.content[self.focused_line] = (self.content[self.focused_line][0..self.content[self.focused_line].len()].to_owned() + "\n").into();
     }
 
     pub fn right(&mut self, _: &Right, cx: &mut ViewContext<Self>) {
@@ -363,23 +354,3 @@ impl ViewInputHandler for TextInput {
     }
 }
 
-impl IntoElement for TextElement {
-    type Element = Self;
-
-    fn into_element(self) -> Self::Element {
-        self
-    }
-}
-
-
-pub struct TextElement {
-    pub input: View<TextInput>,
-    pub lines_pixels: Pixels, // wrapped not \n
-    pub id: usize,
-}
-
-impl FocusableView for TextInput {
-    fn focus_handle(&self, _: &AppContext) -> FocusHandle {
-        self.focus_handle.clone()
-    }
-}

@@ -7,28 +7,18 @@ use gpui::{
 };
 use text::text::TextInput;
 
-struct InputExample {
-    text_input: View<TextInput>,
-    recent_keystrokes: Vec<Keystroke>,
+struct File {
+    text_input: View<TextInput>, // file lines
     focus_handle: FocusHandle,
 }
 
-impl FocusableView for InputExample {
+impl FocusableView for File {
     fn focus_handle(&self, _: &AppContext) -> FocusHandle {
         self.focus_handle.clone()
     }
 }
 
-impl InputExample {
-    fn on_reset_click(&mut self, _: &MouseUpEvent, cx: &mut ViewContext<Self>) {
-        self.recent_keystrokes.clear();
-        self.text_input
-            .update(cx, |text_input, _cx| text_input.reset());
-        cx.notify();
-    }
-}
-
-impl Render for InputExample {
+impl Render for File {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
         div()
             .bg(rgb(0xaaaaaa))
@@ -36,42 +26,7 @@ impl Render for InputExample {
             .flex()
             .flex_col()
             .size_full()
-            // .child(
-            //     div()
-            //         .bg(white())
-            //         .border_b_1()
-            //         .border_color(black())
-            //         .flex()
-            //         .flex_row()
-            //         .justify_between()
-            //         .child(format!("Keyboard {}", cx.keyboard_layout()))
-            //         .child(
-            //             div()
-            //                 .border_1()
-            //                 .border_color(black())
-            //                 .px_2()
-            //                 .bg(yellow())
-            //                 .child("Reset")
-            //                 .hover(|style| {
-            //                     style
-            //                         .bg(yellow().blend(opaque_grey(0.5, 0.5)))
-            //                         .cursor_pointer()
-            //                 })
-            //                 .on_mouse_up(MouseButton::Left, cx.listener(Self::on_reset_click)),
-            //         ),
-            // )
             .child(self.text_input.clone())
-            // .children(self.recent_keystrokes.iter().rev().map(|ks| {
-            //     format!(
-            //         "{:} {}",
-            //         ks.unparse(),
-            //         if let Some(key_char) = ks.key_char.as_ref() {
-            //             format!("-> {:?}", key_char)
-            //         } else {
-            //             "".to_owned()
-            //         }
-            //     )
-            // }))
     }
 }
 
@@ -115,9 +70,8 @@ fn main() {
                         last_bounds: None,
                         is_selecting: false,
                     });
-                    cx.new_view(|cx| InputExample {
+                    cx.new_view(|cx| File {
                         text_input,
-                        recent_keystrokes: vec![],
                         focus_handle: cx.focus_handle(),
                     })
                 },
@@ -126,7 +80,6 @@ fn main() {
         cx.observe_keystrokes(move |ev, cx| {
             window
                 .update(cx, |view, cx| {
-                    view.recent_keystrokes.push(ev.keystroke.clone());
                     cx.notify();
                 })
                 .unwrap();

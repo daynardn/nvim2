@@ -1,16 +1,12 @@
 use gpui::{
-    actions, black, div, fill, hsla, opaque_grey, point, prelude::*, px, relative, rgb, rgba, size,
-    white, yellow, App, AppContext, Bounds, ClipboardItem, CursorStyle, ElementId,
-    ElementInputHandler, FocusHandle, FocusableView, GlobalElementId, KeyBinding, Keystroke,
-    LayoutId, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, PaintQuad, Pixels, Point,
-    ShapedLine, SharedString, SharedUri, Style, TextLayout, TextRun, UTF16Selection,
-    UnderlineStyle, View, ViewContext, ViewInputHandler, WindowBounds, WindowContext,
-    WindowOptions, WrappedLine,
+    div, fill, hsla, point, prelude::*, px, relative, rgb, rgba, size,
+    white, Bounds, CursorStyle, ElementId,
+    ElementInputHandler, FocusableView, GlobalElementId,
+    LayoutId, MouseButton, PaintQuad, Pixels, Style, TextRun,
+    UnderlineStyle, ViewContext, WindowContext, WrappedLine,
 };
 
-use crate::{TextElement};
-
-use super::text::TextInput;
+use super::text::{TextElement, TextInput};
 
 impl Render for TextInput {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
@@ -110,7 +106,7 @@ impl Element for TextElement {
 
     fn prepaint(
         &mut self,
-        id: Option<&GlobalElementId>,
+        _id: Option<&GlobalElementId>,
         bounds: Bounds<Pixels>,
         _request_layout: &mut Self::RequestLayoutState,
         cx: &mut WindowContext,

@@ -17,6 +17,8 @@ actions!(
     [
         Backspace,
         Delete,
+        Up,
+        Down,
         Left,
         Right,
         SelectLeft,
@@ -45,21 +47,31 @@ pub struct TextInput {
 }
 
 impl TextInput {
-    fn left(&mut self, _: &Left, cx: &mut ViewContext<Self>) {
-        // if self.selected_range.is_empty() {
-        //     self.move_to(self.previous_boundary(self.cursor_offset()), cx);
-        // } else {
-        //     self.move_to(self.selected_range.start, cx)
-        // }
+    fn down(&mut self, _: &Down, cx: &mut ViewContext<Self>) {
         self.focused_line += 1;
-        println!("{}", self.focused_line);
-        self.content[self.focused_line] = "".into();
         self.selected_range = 0..0;
         self.selection_reversed = false;
         self.marked_range = None;
         self.last_layout = None;
         self.last_bounds = None;
         self.is_selecting = false;
+        // println!("{}", self.content[self.focused_line]);
+    }
+    fn up(&mut self, _: &Up, cx: &mut ViewContext<Self>) {
+        self.focused_line -= 1;
+        self.selected_range = 0..0;
+        self.selection_reversed = false;
+        self.marked_range = None;
+        self.last_layout = None;
+        self.last_bounds = None;
+        self.is_selecting = false;
+    }
+    fn left(&mut self, _: &Left, cx: &mut ViewContext<Self>) {
+        if self.selected_range.is_empty() {
+            self.move_to(self.previous_boundary(self.cursor_offset()), cx);
+        } else {
+            self.move_to(self.selected_range.start, cx)
+        }
 
         // self.content[self.focused_line] = (self.content[self.focused_line][0..self.content[self.focused_line].len()].to_owned() + "\n").into();
     }
@@ -550,7 +562,6 @@ impl Element for TextElement {
             cx.paint_quad(selection)
         }
         for line in prepaint.lines.clone().unwrap() {
-            println!("new line");
             // self.line_size[0] = line.size(cx.line_height());
             line.paint(bounds.origin, cx.line_height(), cx).unwrap();
 
@@ -579,6 +590,8 @@ impl Render for TextInput {
             .cursor(CursorStyle::IBeam)
             .on_action(cx.listener(Self::backspace))
             .on_action(cx.listener(Self::delete))
+            .on_action(cx.listener(Self::up))
+            .on_action(cx.listener(Self::down))
             .on_action(cx.listener(Self::left))
             .on_action(cx.listener(Self::right))
             .on_action(cx.listener(Self::select_left))

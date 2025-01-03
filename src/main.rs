@@ -80,6 +80,8 @@ fn main() {
         cx.bind_keys([
             KeyBinding::new("backspace", Backspace, None),
             KeyBinding::new("delete", Delete, None),
+            KeyBinding::new("up", Up, None),
+            KeyBinding::new("down", Down, None),
             KeyBinding::new("left", Left, None),
             KeyBinding::new("right", Right, None),
             KeyBinding::new("shift-left", SelectLeft, None),

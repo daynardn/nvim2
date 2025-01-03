@@ -573,10 +573,13 @@ impl Element for TextElement {
 
             self.lines_pixels = line.size(cx.line_height()).height;
             self.request_layout(id, cx);
-            self.input.update(cx, |input, _cx| {
-                input.last_layout = Some(line);
-                input.last_bounds = Some(bounds);
-            });
+
+            if self.input.read(cx).focused_line == self.id { 
+                self.input.update(cx, |input, _cx| {
+                    input.last_layout = Some(line);
+                    input.last_bounds = Some(bounds);
+                });
+            }
         }
     }
 }

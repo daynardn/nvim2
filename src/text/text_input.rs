@@ -33,6 +33,7 @@ actions!(
 
 pub struct TextInput {
     pub focus_handle: FocusHandle,
+    pub focused_line: i32,
     pub content: SharedString,
     pub placeholder: SharedString,
     pub selected_range: Range<usize>,
@@ -355,6 +356,7 @@ impl ViewInputHandler for TextInput {
 struct TextElement {
     input: View<TextInput>,
     lines_pixels: Pixels, // wrapped not \n
+    id: i32,
 }
 
 struct PrepaintState {
@@ -475,7 +477,7 @@ impl Element for TextElement {
             .unwrap();
 
         let cursor_pos = line[0].unwrapped_layout.x_for_index(cursor);
-        let (selection, cursor) = if selected_range.is_empty() {
+        let (mut selection, mut cursor) = if selected_range.is_empty() {
             (
                 None,
                 Some(fill(
@@ -506,6 +508,12 @@ impl Element for TextElement {
                 None,
             )
         };
+
+        if self.input.read(cx).focused_line != self.id {
+            cursor = None;
+            selection = None;
+        }
+
         PrepaintState {
             lines: Some(line),
             cursor,
@@ -577,16 +585,6 @@ impl Render for TextInput {
             .bg(rgb(0xeeeeee))
             .line_height(px(30.))
             .text_size(px(24.))
-            // .child(
-            //     div()
-            //         .h(px(300. + 4. * 2.))
-            //         .w_full()
-            //         .p(px(4.))
-            //         .bg(white())
-            //         .child(TextElement {
-            //             input: cx.view().clone(),
-            //         }),
-            // )
             .child(div().flex_col().children((0..10).map(|i| {
                 div()
                     .flex_col()
@@ -598,6 +596,7 @@ impl Render for TextInput {
                     .child(TextElement {
                         input: cx.view().clone(),
                         lines_pixels: px(30.),
+                        id: i,
                     })
             })))
     }

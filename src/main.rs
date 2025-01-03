@@ -102,6 +102,7 @@ fn main() {
                 |cx| {
                     let text_input = cx.new_view(|cx| TextInput {
                         focus_handle: cx.focus_handle(),
+                        focused_line: 0,
                         content: "".into(),
                         placeholder: "Type here...".into(),
                         selected_range: 0..0,

@@ -1,0 +1,1 @@
+This is a VERY wip code editor aptly named nvim++ or nvim2. This will be the greatest change in code editors that has ever happened or will happen. Hear me out, just like in blender, undo selections.

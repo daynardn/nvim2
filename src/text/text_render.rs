@@ -38,10 +38,8 @@ impl Render for TextInput {
             .child(div().flex_col().children((0..self.lines).map(|i| {
                 div()
                     .flex_col()
-                    // .h(px(30. + 4. * 2.))
-                    // .border_y(px(i as f32 * 30.))
                     .w_full()
-                    //.p(px(4.))
+                    .top(self.content_offset)
                     .bg(white())
                     .child(TextElement {
                         input: cx.view().clone(),
@@ -77,7 +75,7 @@ impl Element for TextElement {
         let t_style = cx.text_style();
 
         style.size.width = relative(1.).into();
-        // self.input.read(cx).content.
+        
         let input = self.input.read(cx);
         let content = input.content[self.id].clone();
         
@@ -96,7 +94,6 @@ impl Element for TextElement {
                 &vec![run], Some(Pixels(500.0)))
             .unwrap();
         
-        // style.size.height = (self.lines_pixels).into();
         style.size.height = line[0].size(cx.line_height()).height.into();
 
         (cx.request_layout(style, []), ())

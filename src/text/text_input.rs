@@ -1,8 +1,7 @@
 use std::{cmp::min, env, ops::Range};
 
 use gpui::{
-    actions, point, Bounds, ClipboardItem, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels,
-    Point, UTF16Selection, ViewContext, ViewInputHandler,
+    actions, point, px, Bounds, ClipboardItem, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Point, UTF16Selection, ViewContext, ViewInputHandler
 };
 use unicode_segmentation::*;
 
@@ -74,6 +73,7 @@ impl TextInput {
         self.last_layout = None;
         self.last_bounds = None;
         self.is_selecting = false;
+        self.content_offset -= px(30.);
         // println!("{}", self.content[self.focused_line]);
     }
     pub fn up(&mut self, _: &Up, _cx: &mut ViewContext<Self>) {
@@ -85,6 +85,7 @@ impl TextInput {
         self.last_layout = None;
         self.last_bounds = None;
         self.is_selecting = false;
+        self.content_offset += px(30.);
     }
     pub fn left(&mut self, _: &Left, cx: &mut ViewContext<Self>) {
         if self.selected_range.is_empty() {

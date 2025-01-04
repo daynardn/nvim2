@@ -11,6 +11,7 @@ pub struct TextInput {
     pub cursor_pos: usize, // cursor l-r, scolling pos not current, "ideal" not actual
     pub lines: usize,
     pub content: Vec<SharedString>,
+    pub content_offset: Pixels, // how far scrolled 
     pub placeholder: SharedString,
     pub selected_range: Range<usize>,
     pub selection_reversed: bool,

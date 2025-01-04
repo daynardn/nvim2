@@ -46,13 +46,13 @@ fn main() {
             KeyBinding::new("right", Right, None),
             KeyBinding::new("shift-left", SelectLeft, None),
             KeyBinding::new("shift-right", SelectRight, None),
-            KeyBinding::new("cmd-a", SelectAll, None),
-            KeyBinding::new("cmd-v", Paste, None),
-            KeyBinding::new("cmd-c", Copy, None),
-            KeyBinding::new("cmd-x", Cut, None),
+            KeyBinding::new("ctrl-a", SelectAll, None),
+            KeyBinding::new("ctrl-v", Paste, None),
+            KeyBinding::new("ctrl-c", Copy, None),
+            KeyBinding::new("ctrl-x", Cut, None),
             KeyBinding::new("home", Home, None),
             KeyBinding::new("end", End, None),
-            KeyBinding::new("ctrl-cmd-space", ShowCharacterPalette, None),
+            KeyBinding::new("ctrl-shift-space", ShowCharacterPalette, None),
             KeyBinding::new("ctrl-s", Save, None),
         ]);
 
@@ -68,6 +68,7 @@ fn main() {
                     let text_input = cx.new_view(|cx| TextInput {
                         focus_handle: cx.focus_handle(),
                         focused_line: 0,
+                        cursor_pos: 0,
                         lines: lines.len(),
                         content: lines,
                         placeholder: "".into(),

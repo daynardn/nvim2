@@ -1,4 +1,4 @@
-use std::{env, ops::Range};
+use std::{cmp::min, env, ops::Range};
 
 use gpui::{
     actions, point, Bounds, ClipboardItem, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels,
@@ -67,7 +67,8 @@ impl TextInput {
     }
     pub fn down(&mut self, _: &Down, _cx: &mut ViewContext<Self>) {
         self.focused_line += 1;
-        self.selected_range = 0..0;
+        let pos = min(self.content[self.focused_line].len(), self.cursor_pos);
+        self.selected_range = pos..pos; // doesn't affect cursor_pos
         self.selection_reversed = false;
         self.marked_range = None;
         self.last_layout = None;
@@ -77,7 +78,8 @@ impl TextInput {
     }
     pub fn up(&mut self, _: &Up, _cx: &mut ViewContext<Self>) {
         self.focused_line -= 1;
-        self.selected_range = 0..0;
+        let pos = min(self.content[self.focused_line].len(), self.cursor_pos);
+        self.selected_range = pos..pos; // doesn't affect cursor_pos
         self.selection_reversed = false;
         self.marked_range = None;
         self.last_layout = None;
@@ -195,6 +197,7 @@ impl TextInput {
 
     pub fn move_to(&mut self, offset: usize, cx: &mut ViewContext<Self>) {
         self.selected_range = offset..offset;
+        self.cursor_pos = offset;
         cx.notify()
     }
 
@@ -226,10 +229,13 @@ impl TextInput {
     }
 
     pub fn select_to(&mut self, offset: usize, cx: &mut ViewContext<Self>) {
+        // self.selection_reversed == l-r
         if self.selection_reversed {
-            self.selected_range.start = offset
+            self.selected_range.start = offset;
+            self.cursor_pos = self.selected_range.start
         } else {
-            self.selected_range.end = offset
+            self.selected_range.end = offset;
+            self.cursor_pos = self.selected_range.end
         };
         if self.selected_range.end < self.selected_range.start {
             self.selection_reversed = !self.selection_reversed;

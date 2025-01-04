@@ -1,7 +1,8 @@
 use std::{env, ops::Range};
 
 use gpui::{
-    actions, point, Bounds, ClipboardItem, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Point, UTF16Selection, ViewContext, ViewInputHandler,
+    actions, point, Bounds, ClipboardItem, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels,
+    Point, UTF16Selection, ViewContext, ViewInputHandler,
 };
 use unicode_segmentation::*;
 
@@ -33,18 +34,36 @@ actions!(
 );
 
 impl TextInput {
-    pub fn enter (&mut self, _: &Enter, cx: &mut ViewContext<Self>) {
+    pub fn enter(&mut self, _: &Enter, cx: &mut ViewContext<Self>) {
         let range = self.selected_text_range(false, cx).unwrap().range;
 
-        self.content.insert(self.focused_line + 1, self.content[self.focused_line][range.end..].to_owned().into());
-        self.content[self.focused_line] = self.content[self.focused_line][0..range.start].to_owned().into(); 
+        self.content.insert(
+            self.focused_line + 1,
+            self.content[self.focused_line][range.end..]
+                .to_owned()
+                .into(),
+        );
+        self.content[self.focused_line] = self.content[self.focused_line][0..range.start]
+            .to_owned()
+            .into();
 
         self.focused_line += 1;
         // self.cursor_pos = 0;
+
+        self.selected_range = 0..0;
     }
-    pub fn save (&mut self, _: &Save, _cx: &mut ViewContext<Self>) {
+    pub fn save(&mut self, _: &Save, _cx: &mut ViewContext<Self>) {
         println!("saved");
-        save(env::current_dir().unwrap().as_os_str().to_str().unwrap().to_owned() + "/test/test.txt", self.content.clone());
+        save(
+            env::current_dir()
+                .unwrap()
+                .as_os_str()
+                .to_str()
+                .unwrap()
+                .to_owned()
+                + "/test/test.txt",
+            self.content.clone(),
+        );
     }
     pub fn down(&mut self, _: &Down, _cx: &mut ViewContext<Self>) {
         self.focused_line += 1;
@@ -103,6 +122,18 @@ impl TextInput {
     }
 
     pub fn backspace(&mut self, _: &Backspace, cx: &mut ViewContext<Self>) {
+        if self.selected_range == (Range { start: 0, end: 0 }) {
+            self.focused_line -= 1;
+            // append line to above line
+            self.content[self.focused_line] = (self.content[self.focused_line].to_string()
+                + &self.content[self.focused_line + 1].to_string())
+                .into();
+            // remove the line we appended
+            self.content.remove(self.focused_line + 1);
+            self.lines -= 1;
+            return;
+        }
+
         if self.selected_range.is_empty() {
             self.select_to(self.previous_boundary(self.cursor_offset()), cx)
         }
@@ -316,9 +347,11 @@ impl ViewInputHandler for TextInput {
             .or(self.marked_range.clone())
             .unwrap_or(self.selected_range.clone());
 
-        self.content[self.focused_line] =
-            (self.content[self.focused_line][0..range.start].to_owned() + new_text + &self.content[self.focused_line][range.end..])
-                .into();
+        self.content[self.focused_line] = (self.content[self.focused_line][0..range.start]
+            .to_owned()
+            + new_text
+            + &self.content[self.focused_line][range.end..])
+            .into();
         self.selected_range = range.start + new_text.len()..range.start + new_text.len();
         self.marked_range.take();
         cx.notify();
@@ -337,9 +370,11 @@ impl ViewInputHandler for TextInput {
             .or(self.marked_range.clone())
             .unwrap_or(self.selected_range.clone());
 
-        self.content[self.focused_line] =
-            (self.content[self.focused_line][0..range.start].to_owned() + new_text + &self.content[self.focused_line][range.end..])
-                .into();
+        self.content[self.focused_line] = (self.content[self.focused_line][0..range.start]
+            .to_owned()
+            + new_text
+            + &self.content[self.focused_line][range.end..])
+            .into();
         self.marked_range = Some(range.start..range.start + new_text.len());
         self.selected_range = new_selected_range_utf16
             .as_ref()
@@ -370,4 +405,3 @@ impl ViewInputHandler for TextInput {
         ))
     }
 }
-

@@ -34,6 +34,18 @@ impl Render for File {
 }
 
 fn main() {
+    let mut args: Vec<String> = env::args().collect();
+    if args.len() <= 1 {
+        println!("No homepage yet :(, input a filename");
+        todo!()
+    }
+    if !args[1].starts_with("/") {
+        // if forgot ./exe test.txt
+        // insert so ./exe /test.txt
+        args[1] =  "/".to_string() + &args[1];
+    }
+    let filename = env::current_dir().unwrap().as_os_str().to_str().unwrap().to_owned() + &args[1];
+
     App::new().run(|cx: &mut AppContext| {
         let bounds = Bounds::centered(None, size(px(300.0), px(300.0)), cx);
         cx.bind_keys([
@@ -56,7 +68,7 @@ fn main() {
             KeyBinding::new("ctrl-s", Save, None),
         ]);
 
-        let lines = load_file(env::current_dir().unwrap().as_os_str().to_str().unwrap().to_owned() + "/test/test.txt");
+        let lines = load_file(filename);
 
         let window = cx
             .open_window(
@@ -69,6 +81,7 @@ fn main() {
                         focus_handle: cx.focus_handle(),
                         focused_line: 0,
                         cursor_pos: 0,
+                        //open file = filename
                         lines: lines.len(),
                         content: lines,
                         content_offset: px(0.),

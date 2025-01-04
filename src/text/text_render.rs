@@ -163,38 +163,36 @@ impl Element for TextElement {
             .shape_text(display_text, font_size, &runs, Some(Pixels(500.0)))
             .unwrap();
 
-        let cursor_pos = line[0].position_for_index(cursor, cx.line_height()).unwrap_or(Point { x: px(0.), y: px(0.) });
-        let (mut selection, mut cursor) = if selected_range.is_empty() {
-            (
-                None,
-                Some(fill(
-                    Bounds::new(
-                        point(bounds.left() + cursor_pos.x, bounds.top() + cursor_pos.y),
-                        size(px(2.), cx.line_height()),
+        let cursor_pos = line[0]
+            .position_for_index(cursor, cx.line_height())
+            .unwrap_or(Point { x: px(0.), y: px(0.) });
+
+        let mut selection = None;
+        if !selected_range.is_empty() {
+            selection = Some(fill(
+                Bounds::from_corners(
+                    point(
+                        bounds.left()
+                            + line[0].unwrapped_layout.x_for_index(selected_range.start),
+                        bounds.top(),
                     ),
-                    gpui::blue(),
-                )),
-            )
-        } else {
-            (
-                Some(fill(
-                    Bounds::from_corners(
-                        point(
-                            bounds.left()
-                                + line[0].unwrapped_layout.x_for_index(selected_range.start),
-                            bounds.top(),
-                        ),
-                        point(
-                            bounds.left()
-                                + line[0].unwrapped_layout.x_for_index(selected_range.end),
-                            bounds.bottom(),
-                        ),
+                    point(
+                        bounds.left()
+                            + line[0].unwrapped_layout.x_for_index(selected_range.end),
+                        bounds.bottom(),
                     ),
-                    rgba(0x3311ff30),
-                )),
-                None,
-            )
-        };
+                ),
+                rgba(0x3311ff30),
+            ));
+        }
+
+        let mut cursor = Some(fill(
+            Bounds::new(
+                point(bounds.left() + cursor_pos.x, bounds.top() + cursor_pos.y),
+                size(px(2.), cx.line_height()),
+            ),
+            gpui::blue(),
+        ));
 
         if self.input.read(cx).focused_line != self.id {
             cursor = None;

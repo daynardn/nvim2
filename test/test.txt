@@ -1,3 +1,26 @@
+[package]
+name = "gpui-test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = "1.42.0"
+gpui = { git = "h
+unicode-segmentation = "1.12.0"
+smallvec = "1.13.2"
+[package]
+name = "gpui-test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = "1.42.0"
+gpui = { git = "https
+unicode-segmentation = "1.12.0"
+smallvec = "1.13.2"
+
+
+
 std::{env
  ops::Range};
 

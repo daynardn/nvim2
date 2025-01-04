@@ -1,3 +1,5 @@
+use std::cmp::{max, min};
+
 use gpui::{
     div, fill, hsla, point, prelude::*, px, relative, rgb, rgba, size, white, Bounds, CursorStyle, ElementId, ElementInputHandler, FocusableView, GlobalElementId, LayoutId, MouseButton, PaintQuad, Pixels, Point, Style, TextRun, UnderlineStyle, ViewContext, WindowContext, WrappedLine
 };
@@ -6,6 +8,12 @@ use super::text::{TextElement, TextInput};
 
 impl Render for TextInput {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+        let bounds = 10 as usize;
+        // visible lines
+        let min_line = max(self.focused_line as i32 - bounds as i32, 0) as usize;
+        let max_line = min(self.focused_line + bounds, self.lines);
+        // todo add fields min_line & max_line so that I can check line against and offset
+
         div()
             .flex()
             .key_context("TextInput")
@@ -35,11 +43,12 @@ impl Render for TextInput {
             .bg(rgb(0xeeeeee))
             .line_height(px(30.))
             .text_size(px(24.))
-            .child(div().flex_col().children((0..self.lines).map(|i| {
+            // TODO! only visible lines
+            .child(div().flex_col().children((min_line..max_line).map(|i| {
                 div()
                     .flex_col()
                     .w_full()
-                    .top(self.content_offset)
+                    // .top(self.content_offset)
                     .bg(white())
                     .child(TextElement {
                         input: cx.view().clone(),
@@ -91,7 +100,7 @@ impl Element for TextElement {
         let line = cx
             .text_system()
             .shape_text(content, font_size, 
-                &vec![run], Some(Pixels(500.0)))
+                &vec![run], Some(Pixels(500.)))
             .unwrap();
         
         style.size.height = line[0].size(cx.line_height()).height.into();

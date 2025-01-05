@@ -68,7 +68,7 @@ fn main() {
             KeyBinding::new("ctrl-s", Save, None),
         ]);
 
-        let lines = load_file(filename);
+        let lines = load_file(filename.clone());
 
         let window = cx
             .open_window(
@@ -81,7 +81,7 @@ fn main() {
                         focus_handle: cx.focus_handle(),
                         focused_line: 0,
                         cursor_pos: 0,
-                        //open file = filename
+                        open_file: filename,
                         lines: lines.len(),
                         content: lines,
                         content_offset: px(0.),

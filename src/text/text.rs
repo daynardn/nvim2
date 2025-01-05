@@ -10,6 +10,7 @@ pub struct TextInput {
     pub focused_line: usize,
     pub cursor_pos: usize, // cursor l-r, scolling pos not current, "ideal" not actual
     pub lines: usize,
+    pub open_file: String,
     pub content: Vec<SharedString>,
     pub content_offset: Pixels, // how far scrolled 
     pub placeholder: SharedString,
@@ -26,6 +27,7 @@ pub struct TextElement {
     pub input: View<TextInput>,
     pub lines_pixels: Pixels, // wrapped not \n
     pub id: usize,
+    pub wrap: Option<Pixels>,
 }
 
 impl IntoElement for TextElement {

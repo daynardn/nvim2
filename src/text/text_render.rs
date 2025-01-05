@@ -54,6 +54,7 @@ impl Render for TextInput {
                         input: cx.view().clone(),
                         lines_pixels: px(30.),
                         id: i,
+                        wrap: None, // px num
                     })
             })))
     }
@@ -100,7 +101,7 @@ impl Element for TextElement {
         let line = cx
             .text_system()
             .shape_text(content, font_size, 
-                &vec![run], Some(Pixels(500.)))
+                &vec![run], self.wrap)
             .unwrap();
         
         style.size.height = line[0].size(cx.line_height()).height.into();
@@ -166,12 +167,19 @@ impl Element for TextElement {
         let font_size = style.font_size.to_pixels(cx.rem_size());
         let line = cx
             .text_system()
-            .shape_text(display_text, font_size, &runs, Some(Pixels(500.0)))
+            .shape_text(display_text, font_size, &runs, self.wrap)
             .unwrap();
 
         let cursor_pos = line[0]
             .position_for_index(cursor, cx.line_height())
             .unwrap_or(Point { x: px(0.), y: px(0.) });
+        
+        // input.content_offset
+        // println!("{:?} {:?}", cursor_pos.x, cx.viewport_size().width);
+        // if cursor_pos.x > cx.viewport_size().width - font_size {
+        //     self.input.content_offset += font_size;
+        // }
+        // if the cursor is farther than we want, scroll the box one char (HOW FIND DIMESTIONS)
 
         let mut selection = None;
         if !selected_range.is_empty() {
@@ -200,7 +208,7 @@ impl Element for TextElement {
             gpui::blue(),
         ));
 
-        if self.input.read(cx).focused_line != self.id {
+        if input.focused_line != self.id {
             cursor = None;
             selection = None;
         }

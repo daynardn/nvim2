@@ -1,7 +1,8 @@
-use std::{cmp::min, env, ops::Range};
+use std::{cmp::min, ops::Range};
 
 use gpui::{
-    actions, point, px, Bounds, ClipboardItem, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Point, UTF16Selection, ViewContext, ViewInputHandler
+    actions, point, Bounds, ClipboardItem, MouseDownEvent, MouseMoveEvent, MouseUpEvent,
+    Pixels, Point, UTF16Selection, ViewContext, ViewInputHandler,
 };
 use unicode_segmentation::*;
 
@@ -47,20 +48,14 @@ impl TextInput {
             .into();
 
         self.focused_line += 1;
+        self.lines += 1;
         // self.cursor_pos = 0;
 
         self.selected_range = 0..0;
     }
     pub fn save(&mut self, _: &Save, _cx: &mut ViewContext<Self>) {
         println!("saved");
-        save(
-            env::current_dir()
-                .unwrap()
-                .as_os_str()
-                .to_str()
-                .unwrap()
-                .to_owned()
-                + "/test/test.txt",
+        save(self.open_file.clone(),
             self.content.clone(),
         );
     }
@@ -73,8 +68,6 @@ impl TextInput {
         self.last_layout = None;
         self.last_bounds = None;
         self.is_selecting = false;
-        self.content_offset -= px(30.);
-        // println!("{}", self.content[self.focused_line]);
     }
     pub fn up(&mut self, _: &Up, _cx: &mut ViewContext<Self>) {
         self.focused_line -= 1;
@@ -85,7 +78,6 @@ impl TextInput {
         self.last_layout = None;
         self.last_bounds = None;
         self.is_selecting = false;
-        self.content_offset += px(30.);
     }
     pub fn left(&mut self, _: &Left, cx: &mut ViewContext<Self>) {
         if self.selected_range.is_empty() {
@@ -133,6 +125,9 @@ impl TextInput {
                 .into();
             // remove the line we appended
             self.content.remove(self.focused_line + 1);
+            // jump to end of the line
+            self.cursor_pos = self.content[self.focused_line].len();
+            self.selected_range = self.cursor_pos..self.cursor_pos;
             self.lines -= 1;
             return;
         }

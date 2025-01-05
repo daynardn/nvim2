@@ -1,4 +1,4 @@
-[package]
+[pack]
 name = "gpui-test"
 version = "0.1.0"
 edition = "2021"
@@ -392,6 +392,7 @@ impl ViewInputHandler for TextInput {
         ))
     }
 }
+
 
 
 

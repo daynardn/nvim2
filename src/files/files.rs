@@ -5,9 +5,10 @@ use gpui::SharedString;
 
 /** returns vec of shared string */
 pub fn load_file(path: String) -> Vec<SharedString>{
-    let file = File::open(path.clone());
+    let mut file = File::open(path.clone());
     if file.is_err() {
-        println!("{}", path + " NOT FOUND");
+        println!("{}", path.clone() + " NOT FOUND, creataing");
+        file =  File::create(path.clone());
     }
 
     let mut file = file.unwrap();
@@ -28,7 +29,8 @@ pub fn save(path: String, lines: Vec<SharedString>) {
     for line in lines {
         let mut string: String = line.into();
         string += "\n";
-        println!("{}", string);
+        // println!("{}", string);
         file.write(string.as_bytes()).expect("Unable to write data");
     }
+    println!("saved");
 }

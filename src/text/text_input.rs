@@ -82,7 +82,15 @@ impl TextInput {
     }
     pub fn left(&mut self, _: &Left, cx: &mut ViewContext<Self>) {
         if self.selected_range.is_empty() {
-            self.move_to(self.previous_boundary(self.cursor_offset()), cx);
+            // if first char, jump to end of next line
+            if self.cursor_pos != 0 {
+                self.move_to(self.previous_boundary(self.cursor_offset()), cx);
+            }else {
+                self.up(&Up, cx);
+                let pos = self.content[self.focused_line].len();
+                self.selected_range = pos..pos;
+                self.cursor_pos = pos;
+            }
         } else {
             self.move_to(self.selected_range.start, cx)
         }
@@ -90,7 +98,14 @@ impl TextInput {
 
     pub fn right(&mut self, _: &Right, cx: &mut ViewContext<Self>) {
         if self.selected_range.is_empty() {
-            self.move_to(self.next_boundary(self.selected_range.end), cx);
+            // if last char, jump to end of past line
+            if self.cursor_pos != self.content[self.focused_line].len() {
+                self.move_to(self.next_boundary(self.selected_range.end), cx);
+            }else {
+                self.down(&Down, cx);
+                self.selected_range = 0..0;
+                self.cursor_pos = 0;
+            }
         } else {
             self.move_to(self.selected_range.end, cx)
         }

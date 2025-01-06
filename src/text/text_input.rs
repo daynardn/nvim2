@@ -1,4 +1,4 @@
-use std::{cmp::min, ops::Range};
+use std::{cmp::{max, min}, ops::Range};
 
 use gpui::{
     actions, point, Bounds, ClipboardItem, MouseDownEvent, MouseMoveEvent, MouseUpEvent,
@@ -60,7 +60,7 @@ impl TextInput {
         );
     }
     pub fn down(&mut self, _: &Down, _cx: &mut ViewContext<Self>) {
-        self.focused_line += 1;
+        self.focused_line = min(self.content.len() - 1, self.focused_line + 1);
         let pos = min(self.content[self.focused_line].len(), self.cursor_pos);
         self.selected_range = pos..pos; // doesn't affect cursor_pos
         self.selection_reversed = false;
@@ -70,7 +70,8 @@ impl TextInput {
         self.is_selecting = false;
     }
     pub fn up(&mut self, _: &Up, _cx: &mut ViewContext<Self>) {
-        self.focused_line -= 1;
+        // usize would overflow
+        self.focused_line = max(0 as i32, self.focused_line as i32 - 1) as usize;
         let pos = min(self.content[self.focused_line].len(), self.cursor_pos);
         self.selected_range = pos..pos; // doesn't affect cursor_pos
         self.selection_reversed = false;
@@ -117,7 +118,7 @@ impl TextInput {
     }
 
     pub fn backspace(&mut self, _: &Backspace, cx: &mut ViewContext<Self>) {
-        if self.selected_range == (Range { start: 0, end: 0 }) {
+        if self.selected_range == (Range { start: 0, end: 0 }) && self.focused_line != 0 {
             self.focused_line -= 1;
             // append line to above line
             self.content[self.focused_line] = (self.content[self.focused_line].to_string()

@@ -12,7 +12,6 @@ pub struct TextInput {
     pub lines: usize,
     pub open_file: String,
     pub content: Vec<SharedString>,
-    pub content_offset: Pixels, // how far scrolled 
     pub placeholder: SharedString,
     pub selected_range: Range<usize>,
     pub selection_reversed: bool,

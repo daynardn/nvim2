@@ -1,7 +1,7 @@
 use std::cmp::{max, min};
 
 use gpui::{
-    div, fill, hsla, point, prelude::*, px, relative, rgb, rgba, size, white, Bounds, CursorStyle, ElementId, ElementInputHandler, FocusableView, GlobalElementId, LayoutId, MouseButton, PaintQuad, Pixels, Point, Style, TextRun, UnderlineStyle, ViewContext, WindowContext, WrappedLine
+    div, fill, hsla, point, prelude::*, px, relative, rgb, rgba, size, white, Bounds, CursorStyle, ElementId, ElementInputHandler, FocusableView, GlobalElementId, LayoutId, MouseButton, PaintQuad, Pixels, Point, SharedString, Style, TextRun, UnderlineStyle, ViewContext, WindowContext, WrappedLine
 };
 
 use super::text::{TextElement, TextInput};
@@ -12,7 +12,17 @@ impl Render for TextInput {
         // visible lines
         let min_line = max(self.focused_line as i32 - bounds as i32, 0) as usize;
         let max_line = min(self.focused_line + bounds, self.lines);
-        // todo add fields min_line & max_line so that I can check line against and offset
+        // todo add fields min_line & max_line so that I can check line against and offset\
+        // println!("{}", self.last_cursor_pos);
+        // self.last_cursor_pos = -max(px(0.0), self.last_cursor_pos - cx.viewport_size().width);
+        let cursor_pos = get_cursor_pos_for_line(
+            self.cursor_offset(), 
+            None, 
+            cx, 
+            self.content[self.focused_line].clone()
+        );
+        let cursor_push_offset = // How far to actually move
+            -max(px(0.0), cursor_pos - cx.viewport_size().width + px(40.0));
 
         div()
             .flex()
@@ -43,12 +53,11 @@ impl Render for TextInput {
             .bg(rgb(0xeeeeee))
             .line_height(px(30.))
             .text_size(px(24.))
-            // TODO! only visible lines
             .child(div().flex_col().children((min_line..max_line).map(|i| {
                 div()
                     .flex_col()
                     .w_full()
-                    // .top(self.content_offset)
+                    .left(cursor_push_offset)
                     .bg(white())
                     .child(TextElement {
                         input: cx.view().clone(),
@@ -66,6 +75,32 @@ pub struct PrepaintState {
     pub selection: Option<PaintQuad>,
 }
 
+fn get_cursor_pos_for_line(
+    cursor_offset: usize,
+    wrap_width: Option<Pixels>,
+    cx: &mut WindowContext,
+    input_line: SharedString
+) -> Pixels {
+    let run = TextRun {
+        len: input_line.len(),
+        font: cx.text_style().font(),
+        color: gpui::blue(),
+        background_color: None,
+        underline: None,
+        strikethrough: None,
+    };
+
+    let line = cx
+        .text_system()
+        .shape_text(input_line, px(24.), &vec![run], wrap_width)
+        .unwrap();
+
+    let cursor_pos = line[0]
+        .position_for_index(cursor_offset, cx.line_height())
+        .unwrap_or(Point { x: px(0.), y: px(0.) });
+
+    cursor_pos.x
+}
 
 impl Element for TextElement {
     type RequestLayoutState = ();
@@ -174,13 +209,6 @@ impl Element for TextElement {
             .position_for_index(cursor, cx.line_height())
             .unwrap_or(Point { x: px(0.), y: px(0.) });
         
-        // input.content_offset
-        // println!("{:?} {:?}", cursor_pos.x, cx.viewport_size().width);
-        // if cursor_pos.x > cx.viewport_size().width - font_size {
-        //     self.input.content_offset += font_size;
-        // }
-        // if the cursor is farther than we want, scroll the box one char (HOW FIND DIMESTIONS)
-
         let mut selection = None;
         if !selected_range.is_empty() {
             selection = Some(fill(
@@ -239,12 +267,14 @@ impl Element for TextElement {
             cx.paint_quad(selection)
         }
         for line in prepaint.lines.clone().unwrap() {
-            // self.line_size[0] = line.size(cx.line_height());
-            line.paint(bounds.origin, cx.line_height(), cx).unwrap();
+            let origin = bounds.origin;
+            let mut cursor;
+            line.paint(origin, cx.line_height(), cx).unwrap();
 
             if focus_handle.is_focused(cx) {
-                if let Some(cursor) = prepaint.cursor.take() {
-                    cx.paint_quad(cursor);
+                cursor = prepaint.cursor.take();
+                if let Some(ref mut cursor) = cursor {
+                    cx.paint_quad(cursor.clone());
                 }
             }
 

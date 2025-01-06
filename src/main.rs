@@ -84,7 +84,6 @@ fn main() {
                         open_file: filename,
                         lines: lines.len(),
                         content: lines,
-                        content_offset: px(0.),
                         placeholder: "".into(),
                         selected_range: 0..0,
                         selection_reversed: false,

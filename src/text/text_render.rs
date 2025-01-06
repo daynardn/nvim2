@@ -12,12 +12,12 @@ impl Render for TextInput {
         // visible lines
         let min_line = max(self.focused_line as i32 - bounds as i32, 0) as usize;
         let max_line = min(self.focused_line + bounds, self.lines);
-        // todo add fields min_line & max_line so that I can check line against and offset\
-        // println!("{}", self.last_cursor_pos);
-        // self.last_cursor_pos = -max(px(0.0), self.last_cursor_pos - cx.viewport_size().width);
+
+        let wrap_width = None; // cx.viewport_size().width;
+
         let cursor_pos = get_cursor_pos_for_line(
             self.cursor_offset(), 
-            None, 
+            wrap_width, 
             cx, 
             self.content[self.focused_line].clone()
         );
@@ -63,7 +63,7 @@ impl Render for TextInput {
                         input: cx.view().clone(),
                         lines_pixels: px(30.),
                         id: i,
-                        wrap: None, // px num
+                        wrap: wrap_width, // px num
                     })
             })))
     }

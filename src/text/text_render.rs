@@ -14,6 +14,7 @@ impl Render for TextInput {
         let max_line = min(self.focused_line + bounds, self.lines);
 
         let wrap_width = None; // cx.viewport_size().width;
+        let cursor_push_dist = px(40.0); // dist from side of screen to move the screen
 
         let cursor_pos = get_cursor_pos_for_line(
             self.cursor_offset(), 
@@ -22,43 +23,15 @@ impl Render for TextInput {
             self.content[self.focused_line].clone()
         );
 
-        // cursor_pos - cx.viewport_size() gives just the text offset
+
         let mut cursor_push_offset = // How far to actually move
-            -max(px(0.0), cursor_pos - cx.viewport_size().width + px(40.0));
-    
-            // println!("{}", cursor_pos - cx.viewport_size().width);
-            // println!("{}", self.last_cursor_scroll);
-            println!("{}", self.last_cursor_scroll + -max(px(0.0), cursor_pos - px(40.0)) - self.last_cursor_scroll);
-
-//-max(px(0.0), cursor_pos - px(40.0)) - self.last_cursor_scroll = dist from 40px from left
-
+            -max(px(0.0), cursor_pos - cx.viewport_size().width + cursor_push_dist);
+ 
         // if we are going back, don't scroll until we just barely get back
-        if (cursor_pos - cx.viewport_size().width) + self.last_cursor_scroll < -cx.viewport_size().width + px(40.0) && cursor_push_offset - self.last_cursor_scroll > px(0.0){
-            // println!(
-            //     "{}",
-            //     ((cursor_pos - cx.viewport_size().width) + self.last_cursor_scroll) + cx.viewport_size().width
-            // );
-            // println!(
-            //     "{} 2: {}",
-            //     (cursor_pos) + self.last_cursor_scroll, self.last_cursor_scroll + (cursor_pos + self.last_cursor_scroll)
-            // );
-            println!(
-                "{} val: {}",
-                // -max(px(0.0), -self.last_cursor_scroll + (cursor_pos + self.last_cursor_scroll) + px(40.0)),
-                // self.last_cursor_scroll + (cursor_pos + self.last_cursor_scroll) + px(40.0)
-                (cursor_pos - cx.viewport_size().width) + self.last_cursor_scroll * 2 + cx.viewport_size().width,
-                (cursor_pos - self.last_cursor_scroll) + self.last_cursor_scroll,
-            );
-            // cursor_push_offset - self.last_cursor_scroll = dist from left screen
-            // cursor_push_offset += ((cursor_pos - cx.viewport_size().width) + self.last_cursor_scroll) + cx.viewport_size().width
-            // cursor_push_offset = self.last_cursor_scroll + px(40.);
-            // cursor_push_offset = self.last_cursor_scroll + (cursor_pos + self.last_cursor_scroll);
-            // cursor_push_offset = (cursor_pos - self.last_cursor_scroll) + self.last_cursor_scroll;
-            // cursor_push_offset = self.last_cursor_scroll;
-            cursor_push_offset = -max(px(0.0), cursor_pos - px(40.0));
-            // cursor_push_offset = -max(px(0.0), self.last_cursor_scroll + (cursor_pos + self.last_cursor_scroll) + px(40.0));
+        if (cursor_pos - cx.viewport_size().width) + self.last_cursor_scroll < -cx.viewport_size().width + cursor_push_dist {
+            // this took me so long. The idea is that the offset = pos + distance from 40x on the left side
+            cursor_push_offset = -max(px(0.0), cursor_pos - cursor_push_dist);
         }else
-
         // if we are going back, don't scroll
         if cursor_push_offset > self.last_cursor_scroll {
 

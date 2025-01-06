@@ -18,6 +18,7 @@ pub struct TextInput {
     pub marked_range: Option<Range<usize>>,
     pub last_layout: Option<WrappedLine>,
     pub last_bounds: Option<Bounds<Pixels>>,
+    pub last_cursor_scroll: Pixels, // l-r content offset
     pub is_selecting: bool,
 }
 

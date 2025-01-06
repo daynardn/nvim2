@@ -90,6 +90,7 @@ fn main() {
                         marked_range: None,
                         last_layout: None,
                         last_bounds: None,
+                        last_cursor_scroll: px(0.0),
                         is_selecting: false,
                     });
                     cx.new_view(|cx| File {

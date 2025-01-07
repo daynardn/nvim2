@@ -1,8 +1,7 @@
 use std::{cmp::{max, min}, ops::Range};
 
 use gpui::{
-    actions, point, Bounds, ClipboardItem, MouseDownEvent, MouseMoveEvent, MouseUpEvent,
-    Pixels, Point, UTF16Selection, ViewContext, ViewInputHandler,
+    actions, point, px, Bounds, ClipboardItem, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Point, UTF16Selection, ViewContext, ViewInputHandler
 };
 use unicode_segmentation::*;
 
@@ -85,7 +84,7 @@ impl TextInput {
             // if first char, jump to end of next line
             if self.cursor_pos != 0 {
                 self.move_to(self.previous_boundary(self.cursor_offset()), cx);
-            }else {
+            }else { // TODO! not in vim
                 self.up(&Up, cx);
                 let pos = self.content[self.focused_line].len();
                 self.selected_range = pos..pos;
@@ -162,6 +161,8 @@ impl TextInput {
     }
 
     pub fn on_mouse_down(&mut self, event: &MouseDownEvent, cx: &mut ViewContext<Self>) {
+        self.focused_line = (event.position.y / px(30.0)) as usize;
+        
         self.is_selecting = true;
 
         if event.modifiers.shift {

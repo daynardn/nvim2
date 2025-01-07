@@ -10,8 +10,13 @@ impl Render for TextInput {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
         let bounds = 10 as usize;
         // visible lines
-        let min_line = max(self.focused_line as i32 - bounds as i32, 0) as usize;
-        let max_line = min(self.focused_line + bounds, self.lines);
+        let mut min_line = max(self.focused_line as i32 - bounds as i32, 0) as usize;
+        let mut max_line = min(self.focused_line + bounds, self.lines);
+        if min_line == 0 && max_line + min_line < bounds * 2 {
+            max_line += bounds * 2 - (max_line + min_line);
+        }else if max_line == self.lines {
+            min_line = max_line - (bounds * 2);
+        }
 
         let wrap_width = None; // cx.viewport_size().width;
         let cursor_push_dist = px(40.0); // dist from side of screen to move the screen

@@ -40,8 +40,7 @@ fn main() {
         todo!()
     }
     if !args[1].starts_with("/") {
-        // if forgot ./exe test.txt
-        // insert so ./exe /test.txt
+        // ./exe test.txt -> ./exe /test.txt
         args[1] =  "/".to_string() + &args[1];
     }
     let filename = env::current_dir().unwrap().as_os_str().to_str().unwrap().to_owned() + &args[1];

@@ -8,16 +8,23 @@ use super::text::{TextElement, TextInput};
 
 impl Render for TextInput {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
-        let bounds = 10 as usize;
+        let bounds: usize = 
+            (((cx.viewport_size().height.to_f64() / 30.) as f32 + 0.5).round() / 2.0) as usize;
+
         // visible lines
         let mut min_line = max(self.focused_line as i32 - bounds as i32, 0) as usize;
-        let mut max_line = min(self.focused_line + bounds, self.lines);
+        let mut max_line = min(self.focused_line + bounds, self.lines - 1);
+
         if min_line == 0 && max_line + min_line < bounds * 2 {
+            // no bounds because if max_line + min_line < bounds, never overflow
             max_line += bounds * 2 - (max_line + min_line);
-        }else if max_line == self.lines {
-            min_line = max_line - (bounds * 2);
+        }else if max_line == self.lines - 1 {
+            min_line = max_line.checked_sub(bounds * 2).unwrap_or(0);
         }
 
+        max_line = min(max_line, self.lines - 1); // make sure not oob
+        // checked sub checks oob for min_line
+        
         let wrap_width = None; // cx.viewport_size().width;
         let cursor_push_dist = px(40.0); // dist from side of screen to move the screen
 

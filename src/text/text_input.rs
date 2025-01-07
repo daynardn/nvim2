@@ -59,7 +59,7 @@ impl TextInput {
         );
     }
     pub fn down(&mut self, _: &Down, _cx: &mut ViewContext<Self>) {
-        self.focused_line = min(self.content.len() - 1, self.focused_line + 1);
+        self.focused_line = min(self.lines - 1, self.focused_line + 1);
         let pos = min(self.content[self.focused_line].len(), self.cursor_pos);
         self.selected_range = pos..pos; // doesn't affect cursor_pos
         self.selection_reversed = false;

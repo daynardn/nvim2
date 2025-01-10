@@ -5,8 +5,7 @@ use std::env;
 
 use files::files::load_file;
 use gpui::{
-    div, prelude::*, px, rgb, size, App, AppContext, Bounds, FocusHandle, FocusableView,
-    KeyBinding, View, ViewContext, WindowBounds, WindowOptions,
+    div, prelude::*, px, rgb, size, App, AppContext, Bounds, FocusHandle, FocusableView, KeyBinding, View, ViewContext, WindowBounds, WindowOptions
 };
 use text::{text::TextInput, text_input::*};
 
@@ -57,6 +56,8 @@ fn main() {
             KeyBinding::new("right", Right, None),
             KeyBinding::new("shift-left", SelectLeft, None),
             KeyBinding::new("shift-right", SelectRight, None),
+            KeyBinding::new("shift-up", SelectUp, None),
+            KeyBinding::new("shift-down", SelectDown, None),
             KeyBinding::new("ctrl-a", SelectAll, None),
             KeyBinding::new("ctrl-v", Paste, None),
             KeyBinding::new("ctrl-c", Copy, None),
@@ -73,6 +74,7 @@ fn main() {
             .open_window(
                 WindowOptions {
                     window_bounds: Some(WindowBounds::Windowed(bounds)),
+
                     ..Default::default()
                 },
                 |cx| {
@@ -84,6 +86,7 @@ fn main() {
                         lines: lines.len(),
                         content: lines,
                         placeholder: "".into(),
+                        selected_lines: 0..0,
                         selected_range: 0..0,
                         selection_reversed: false,
                         marked_range: None,

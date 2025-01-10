@@ -67,6 +67,8 @@ impl Render for TextInput {
             .on_action(cx.listener(Self::right))
             .on_action(cx.listener(Self::select_left))
             .on_action(cx.listener(Self::select_right))
+            .on_action(cx.listener(Self::select_up))
+            .on_action(cx.listener(Self::select_down))
             .on_action(cx.listener(Self::select_all))
             .on_action(cx.listener(Self::home))
             .on_action(cx.listener(Self::end))
@@ -182,7 +184,29 @@ impl Element for TextElement {
     ) -> Self::PrepaintState {
         let input = self.input.read(cx);
         let content = input.content[self.id].clone();
-        let selected_range = input.selected_range.clone();
+        let mut selected_range = input.selected_range.clone();
+        let fully_selected = input.selected_lines.clone().any(|x| x == self.id);
+        if fully_selected {
+            if self.id == input.selected_lines.start && self.id == input.selected_lines.end - 1 {
+                selected_range = selected_range;
+            }else if self.id == input.selected_lines.start {
+                if !input.selection_reversed {
+                    selected_range = selected_range.start..content.len();
+                }else {
+                    selected_range = selected_range.end..content.len();
+                }
+            }else if self.id == input.selected_lines.end - 1 {
+                if !input.selection_reversed {
+                    selected_range = 0..selected_range.end;
+                }else {
+                    selected_range = 0..selected_range.start;
+                }
+            }else {
+                selected_range = 0..content.len();
+            }
+        }else {
+            selected_range = 0..0;
+        }
         let cursor = input.cursor_offset();
         let style = cx.text_style();
 
@@ -267,7 +291,9 @@ impl Element for TextElement {
 
         if input.focused_line != self.id {
             cursor = None;
-            selection = None;
+            if !fully_selected {
+                selection = None;
+            }
         }
 
         PrepaintState {

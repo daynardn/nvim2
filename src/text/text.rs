@@ -13,7 +13,8 @@ pub struct TextInput {
     pub open_file: String,
     pub content: Vec<SharedString>,
     pub placeholder: SharedString,
-    pub selected_range: Range<usize>,
+    pub selected_lines: Range<usize>, // lines + range of the selection
+    pub selected_range: Range<usize>, // end..botton + full_lines + 0..top 
     pub selection_reversed: bool,
     pub marked_range: Option<Range<usize>>,
     pub last_layout: Option<WrappedLine>,

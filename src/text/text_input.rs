@@ -127,30 +127,46 @@ impl TextInput {
     }
 
     pub fn select_up(&mut self, _: &SelectUp, _cx: &mut ViewContext<Self>) {
-        let pos = min(self.content[self.focused_line].len(), self.cursor_pos);
         if !self.is_selecting {
             self.selected_range.start = self.cursor_pos;
             self.selected_lines.start = self.focused_line;
         }
         self.focused_line = max(0 as i32, self.focused_line as i32 - 1) as usize;
-        self.selected_range = self.selected_range.start..pos;
+        let pos = min(self.content[self.focused_line].len(), self.cursor_pos);
+        if !self.selection_reversed {
+            self.selected_range.end = pos;
+        }else {
+            self.selected_range.start = pos;
+        }
         self.selected_lines.end = self.focused_line + 1;
         self.is_selecting = true;
         self.selected_lines_reversed = self.selected_lines.start >= self.selected_lines.end;
+        if self.selected_range.end < self.selected_range.start {
+            self.selection_reversed = !self.selection_reversed;
+            self.selected_range = self.selected_range.end..self.selected_range.start;
+        }
     }
 
     pub fn select_down(&mut self, _: &SelectDown, _cx: &mut ViewContext<Self>) {
-        let pos = min(self.content[self.focused_line].len(), self.cursor_pos);
         if !self.is_selecting {
             self.selected_range.start = self.cursor_pos;
             // self.selected_range.end = self.cursor_pos;
             self.selected_lines.start = self.focused_line;
         }
         self.focused_line = min(self.lines - 1, self.focused_line + 1);
-        self.selected_range = self.selected_range.start..pos;
+        let pos = min(self.content[self.focused_line].len(), self.cursor_pos);
+        if !self.selection_reversed {
+            self.selected_range.end = pos;
+        }else {
+            self.selected_range.start = pos;
+        }
         self.selected_lines.end = self.focused_line + 1; 
         self.is_selecting = true;
         self.selected_lines_reversed = self.selected_lines.start >= self.selected_lines.end;
+        if self.selected_range.end < self.selected_range.start {
+            self.selection_reversed = !self.selection_reversed;
+            self.selected_range = self.selected_range.end..self.selected_range.start;
+        }
     }
 
     pub fn select_all(&mut self, _: &SelectAll, cx: &mut ViewContext<Self>) {
@@ -246,6 +262,7 @@ impl TextInput {
     pub fn move_to(&mut self, offset: usize, cx: &mut ViewContext<Self>) {
         self.selected_range = offset..offset;
         self.cursor_pos = offset;
+        self.is_selecting = false;
         cx.notify()
     }
 

@@ -1,4 +1,4 @@
-use std::{cmp::{max, min}, mem::swap, ops::Range};
+use std::{cmp::{max, min}, ops::Range};
 
 use gpui::{
     actions, point, px, Bounds, ClipboardItem, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Point, UTF16Selection, ViewContext, ViewInputHandler
@@ -183,7 +183,7 @@ impl TextInput {
     }
 
     pub fn backspace(&mut self, _: &Backspace, cx: &mut ViewContext<Self>) {
-        if self.selected_range == (Range { start: 0, end: 0 }) && self.focused_line != 0 {
+        if !self.is_selecting && self.focused_line != 0 {
             self.focused_line -= 1;
             // append line to above line
             self.content[self.focused_line] = (self.content[self.focused_line].to_string()
@@ -198,10 +198,44 @@ impl TextInput {
             return;
         }
 
-        if self.selected_range.is_empty() {
+        if !self.is_selecting {
             self.select_to(self.previous_boundary(self.cursor_offset()), cx)
         }
-        self.replace_text_in_range(None, "", cx)
+
+        {
+            let this = &mut *self;
+            let range = None
+                .as_ref()
+                .map(|range_utf16| this.range_from_utf16(range_utf16))
+                .or(this.marked_range.clone())
+                .unwrap_or(this.selected_range.clone());
+
+            // this.content[this.focused_line] = (this.content[this.focused_line][0..range.start]
+            //     .to_owned()
+            //     + new_text
+            //     + &this.content[this.focused_line][range.end..])
+            //     .into();
+
+            for line in self.selected_lines.clone() {
+                if line == self.selected_lines.start && line == self.selected_lines.end - 1 {
+                    self.content[line] = (self.content[line][0..range.start].to_owned() + 
+                        &self.content[line][range.end..]).into();
+
+                }else if line == self.selected_lines.start {
+                    self.content[line] = self.content[line][0..range.start].to_owned().into();
+                    println!("test {} , {}", range.start, self.content[line].len());
+                }else if line == self.selected_lines.end - 1 {
+                    println!("else {} , {}", range.start, self.content[line].len());
+                    self.content[line] = self.content[line][range.end..].to_owned().into();
+                }else {
+                    self.content[line] = "".into();
+                }
+            }
+
+            // this.selected_range = range.start + new_text.len()..range.start + new_text.len();
+            // this.marked_range.take();
+            cx.notify();
+        }
     }
 
     pub fn delete(&mut self, _: &Delete, cx: &mut ViewContext<Self>) {

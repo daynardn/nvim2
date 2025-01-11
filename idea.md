@@ -26,3 +26,6 @@ This is a dumb idea and yet I don't care
 5.) A clean gui that is simple but also snappy (unlike nvim with a lot of extentions) with file tree and tabs (native) and git tree (extention)
 6.)  Opinionated defaults that are configurable, and disablable as modules, so in config ui you can use GUI module [x] (tabs and file tree) and disable it
 7.) Re implementation of the vim standard without the legacy code keeping the keybindings
+
+
+exec blocks where \x 8 + 8  <ENTER>  expands to 16

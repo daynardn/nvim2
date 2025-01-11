@@ -128,7 +128,7 @@ impl TextInput {
 
     pub fn select_up(&mut self, _: &SelectUp, _cx: &mut ViewContext<Self>) {
         if !self.is_selecting {
-            self.selected_range.start = self.cursor_pos;
+            // don't set sel range start because it's same
             self.selected_lines.start = self.focused_line;
         }
         self.focused_line = max(0 as i32, self.focused_line as i32 - 1) as usize;
@@ -149,8 +149,6 @@ impl TextInput {
 
     pub fn select_down(&mut self, _: &SelectDown, _cx: &mut ViewContext<Self>) {
         if !self.is_selecting {
-            self.selected_range.start = self.cursor_pos;
-            // self.selected_range.end = self.cursor_pos;
             self.selected_lines.start = self.focused_line;
         }
         self.focused_line = min(self.lines - 1, self.focused_line + 1);
@@ -208,13 +206,7 @@ impl TextInput {
                 .as_ref()
                 .map(|range_utf16| this.range_from_utf16(range_utf16))
                 .or(this.marked_range.clone())
-                .unwrap_or(this.selected_range.clone());
-
-            // this.content[this.focused_line] = (this.content[this.focused_line][0..range.start]
-            //     .to_owned()
-            //     + new_text
-            //     + &this.content[this.focused_line][range.end..])
-            //     .into();
+                .unwrap_or(self.normalized_selection_bounds().clone());
 
             for line in self.selected_lines.clone() {
                 if line == self.selected_lines.start && line == self.selected_lines.end - 1 {
@@ -222,8 +214,9 @@ impl TextInput {
                         &self.content[line][range.end..]).into();
 
                 }else if line == self.selected_lines.start {
-                    self.content[line] = self.content[line][0..range.start].to_owned().into();
                     println!("test {} , {}", range.start, self.content[line].len());
+                    // let start = min(range.start, self.content[line].len());
+                    self.content[line] = self.content[line][0..range.start].to_owned().into();
                 }else if line == self.selected_lines.end - 1 {
                     println!("else {} , {}", range.start, self.content[line].len());
                     self.content[line] = self.content[line][range.end..].to_owned().into();
@@ -305,6 +298,14 @@ impl TextInput {
             self.selected_range.start
         } else {
             self.selected_range.end
+        }
+    }
+
+    pub fn normalized_selection_bounds(&self) -> Range<usize> {
+        if !self.selection_reversed {
+            self.selected_range.clone()
+        } else {
+            Range { start: self.selected_range.end, end: self.selected_range.start }
         }
     }
 

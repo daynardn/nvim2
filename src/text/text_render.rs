@@ -1,4 +1,4 @@
-use std::cmp::{max, min};
+use std::{cmp::{max, min}, mem::swap};
 
 use gpui::{
     div, fill, hsla, point, prelude::*, px, relative, rgb, rgba, size, white, Bounds, CursorStyle, ElementId, ElementInputHandler, FocusableView, GlobalElementId, LayoutId, MouseButton, PaintQuad, Pixels, Point, SharedString, Style, TextRun, UnderlineStyle, ViewContext, WindowContext, WrappedLine
@@ -185,17 +185,25 @@ impl Element for TextElement {
         let input = self.input.read(cx);
         let content = input.content[self.id].clone();
         let mut selected_range = input.selected_range.clone();
-        let fully_selected = input.selected_lines.clone().any(|x| x == self.id);
+        let mut selected_lines = input.selected_lines.clone();
+        if input.selected_lines_reversed {
+            swap(&mut selected_lines.start, &mut selected_lines.end);
+            selected_lines.start -= 1;
+            selected_lines.end += 1;
+            // reversed lines flipped
+            swap(&mut selected_range.start, &mut selected_range.end);
+        }
+        let fully_selected = selected_lines.clone().any(|x| x == self.id);
         if fully_selected {
-            if self.id == input.selected_lines.start && self.id == input.selected_lines.end - 1 {
+            if self.id == selected_lines.start && self.id == selected_lines.end - 1 {
                 selected_range = selected_range;
-            }else if self.id == input.selected_lines.start {
+            }else if self.id == selected_lines.start {
                 if !input.selection_reversed {
                     selected_range = selected_range.start..content.len();
                 }else {
                     selected_range = selected_range.end..content.len();
                 }
-            }else if self.id == input.selected_lines.end - 1 {
+            }else if self.id == selected_lines.end - 1 {
                 if !input.selection_reversed {
                     selected_range = 0..selected_range.end;
                 }else {

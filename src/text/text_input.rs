@@ -1,4 +1,4 @@
-use std::{cmp::{max, min}, ops::Range};
+use std::{cmp::{max, min}, mem::swap, ops::Range};
 
 use gpui::{
     actions, point, px, Bounds, ClipboardItem, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Point, UTF16Selection, ViewContext, ViewInputHandler
@@ -126,9 +126,17 @@ impl TextInput {
         self.is_selecting = true;
     }
 
-    pub fn select_up(&mut self, _: &SelectUp, cx: &mut ViewContext<Self>) {
-        self.select_to(self.previous_boundary(self.cursor_offset()), cx);
+    pub fn select_up(&mut self, _: &SelectUp, _cx: &mut ViewContext<Self>) {
+        let pos = min(self.content[self.focused_line].len(), self.cursor_pos);
+        if !self.is_selecting {
+            self.selected_range.start = self.cursor_pos;
+            self.selected_lines.start = self.focused_line;
+        }
+        self.focused_line = max(0 as i32, self.focused_line as i32 - 1) as usize;
+        self.selected_range = self.selected_range.start..pos;
+        self.selected_lines.end = self.focused_line + 1;
         self.is_selecting = true;
+        self.selected_lines_reversed = self.selected_lines.start >= self.selected_lines.end;
     }
 
     pub fn select_down(&mut self, _: &SelectDown, _cx: &mut ViewContext<Self>) {
@@ -142,6 +150,7 @@ impl TextInput {
         self.selected_range = self.selected_range.start..pos;
         self.selected_lines.end = self.focused_line + 1; 
         self.is_selecting = true;
+        self.selected_lines_reversed = self.selected_lines.start >= self.selected_lines.end;
     }
 
     pub fn select_all(&mut self, _: &SelectAll, cx: &mut ViewContext<Self>) {

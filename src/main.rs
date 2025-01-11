@@ -87,6 +87,7 @@ fn main() {
                         content: lines,
                         placeholder: "".into(),
                         selected_lines: 0..0,
+                        selected_lines_reversed: false,
                         selected_range: 0..0,
                         selection_reversed: false,
                         marked_range: None,

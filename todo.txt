@@ -1,5 +1,8 @@
-[ ] - Add saving
-[ ] - enter = new line
-[ ] - boundscheck arrows
+[x] - Add saving
+[x] - enter = new line
+[x] - boundscheck arrows
 [ ] - multiline selections :skull:
+[ ] - lsp
 [ ] - vim motions
+[ ] - extentions
+[ ] - ui

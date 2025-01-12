@@ -207,6 +207,8 @@ impl TextInput {
             .or(this.marked_range.clone())
             .unwrap_or(self.normalized_selection_bounds().clone());
 
+        let mut lines_to_merge = vec![]; // lines to wrap because deleted '\n'
+
         for line in self.selected_lines.clone() {
             // single line
             if line == self.selected_lines.start && line == self.selected_lines.end - 1 {
@@ -223,13 +225,24 @@ impl TextInput {
             }else if line == self.selected_lines.end - 1 {
                 println!("else {} , {}", range.start, self.content[line].len());
                 self.content[line] = self.content[line][range.end..].to_owned().into();
+                // deletes the "newline" remove the newline
+                lines_to_merge.push(line);
             }else {
                 self.content[line] = "".into();
+                lines_to_merge.push(line);
             }
         }
 
-        // this.selected_range = range.start + new_text.len()..range.start + new_text.len();
-        // this.marked_range.take();
+        for (i, line) in lines_to_merge.into_iter().enumerate() {
+            if self.content[line - i] != "" { 
+                // if still content (line == self.selected_lines.end - 1), append before deleting
+                self.content[(line - i) - 1] = (self.content[(line - i) - 1].to_string() + 
+                        &self.content[line - i].to_string()).into();
+            }
+            self.content.remove(line - i); // adjust for already taken
+            self.lines -= 1;
+        }
+
         cx.notify();
 
         self.focused_line = self.selected_lines.start;

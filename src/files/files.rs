@@ -26,10 +26,12 @@ pub fn save(path: String, lines: Vec<SharedString>) {
         println!("{}", path + " NOT FOUND");
     }
     let mut file = file.unwrap();
-    for line in lines {
+    let num_lines = lines.len();
+    for (i, line) in lines.into_iter().enumerate() {
         let mut string: String = line.into();
-        string += "\n";
-        // println!("{}", string);
+        if i != num_lines - 1 { // dont' append blank line 
+            string += "\n";
+        }
         file.write(string.as_bytes()).expect("Unable to write data");
     }
     println!("saved");

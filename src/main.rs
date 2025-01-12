@@ -1,5 +1,6 @@
 mod text;
 mod files;
+mod lsp;
 
 use std::env;
 

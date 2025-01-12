@@ -207,22 +207,30 @@ impl TextInput {
             .or(this.marked_range.clone())
             .unwrap_or(self.normalized_selection_bounds().clone());
 
+            let selected_lines = if !self.selected_lines_reversed {
+                self.selected_lines.clone()
+            }else {
+                println!("{:?}", self.selected_lines);
+                (self.selected_lines.end - 1)..(self.selected_lines.start + 1)
+            };
+            println!("{:?}", selected_lines);
+
         let mut lines_to_merge = vec![]; // lines to wrap because deleted '\n'
 
-        for line in self.selected_lines.clone() {
+        for line in selected_lines.clone() {
             // single line
-            if line == self.selected_lines.start && line == self.selected_lines.end - 1 {
+            if line == selected_lines.start && line == selected_lines.end - 1 {
                 if range.end < range.start {
                     swap(&mut range.end, &mut range.start);
                 }
                 self.content[line] = (self.content[line][0..range.start].to_owned() + 
                     &self.content[line][range.end..]).into();
 
-            }else if line == self.selected_lines.start {
+            }else if line == selected_lines.start {
                 println!("test {} , {}", range.start, self.content[line].len());
                 // let start = min(range.start, self.content[line].len());
                 self.content[line] = self.content[line][0..range.start].to_owned().into();
-            }else if line == self.selected_lines.end - 1 {
+            }else if line == selected_lines.end - 1 {
                 println!("else {} , {}", range.start, self.content[line].len());
                 self.content[line] = self.content[line][range.end..].to_owned().into();
                 // deletes the "newline" remove the newline
@@ -235,7 +243,7 @@ impl TextInput {
 
         for (i, line) in lines_to_merge.into_iter().enumerate() {
             if self.content[line - i] != "" { 
-                // if still content (line == self.selected_lines.end - 1), append before deleting
+                // if still content (line == selected_lines.end - 1), append before deleting
                 self.content[(line - i) - 1] = (self.content[(line - i) - 1].to_string() + 
                         &self.content[line - i].to_string()).into();
             }
@@ -245,9 +253,10 @@ impl TextInput {
 
         cx.notify();
 
-        self.focused_line = self.selected_lines.start;
+        self.focused_line = selected_lines.start;
         self.selected_lines = self.focused_line..self.focused_line + 1;
         self.selected_range = range.start..range.start;
+        self.selected_lines_reversed = false;
         self.is_selecting = false;
     }
 

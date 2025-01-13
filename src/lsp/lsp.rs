@@ -4,10 +4,9 @@ use std::{
     str::FromStr,
 };
 use lsp_types::{
-    notification::{Notification, PublishDiagnostics},
     *,
 };
-use serde_json::{from_str, to_string, value::to_raw_value};
+use serde_json::{from_str, json, to_string, value::to_raw_value};
 
 fn read_message<R: Read>(reader: &mut BufReader<R>) -> std::io::Result<Option<String>> {
     let mut header = String::new();
@@ -67,59 +66,71 @@ fn get_init(directory: String) -> Option<String> {
 }
 
 pub fn run_lsp(directory: String) -> std::io::Result<()> {
-    let mut clangd = Command::new("clangd")
-        // .arg("--log=verbose")
+    let mut lsp = Command::new("rust-analyzer")
         .stdout(Stdio::piped())
         .stdin(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()?;
 
-    let stdin = clangd.stdin.as_mut().expect("Failed to open stdin");
-    let stdout = clangd.stdout.take().expect("Failed to open stdout");
-    let stderr = clangd.stderr.take().expect("Failed to open stderr");
+    let stdin = lsp.stdin.as_mut().expect("Failed to open stdin");
+    let stdout = lsp.stdout.take().expect("Failed to open stdout");
+    let stderr = lsp.stderr.take().expect("Failed to open stderr");
 
     let init_request = get_init(directory).unwrap();
+    println!("{}", init_request);
     stdin.write_all(init_request.as_bytes())?;
-    stdin.flush()?;
-
-    let file_path = "./main.c";
-    let file_content = std::fs::read_to_string(file_path)?;
-    let did_open_request = format!(
-        r#"{{
-            "jsonrpc": "2.0",
-            "method": "textDocument/didOpen",
-            "params": {{
-                "textDocument": {{
-                    "uri": "file://{0}",
-                    "languageId": "c",
-                    "version": 1,
-                    "text": "{1}"
-                }}
-            }}
-        }}"#,
-        file_path,
-        file_content.replace('\n', "\\n").replace('"', "\\\"")
-    );
-
-    let did_open_message = format!(
-        "Content-Length: {}\r\n\r\n{}",
-        did_open_request.len(),
-        did_open_request
-    );
-
-    stdin.write_all(did_open_message.as_bytes())?;
     stdin.flush()?;
 
     // Handle stdout messages
     let mut stdout_reader = BufReader::new(stdout);
-    
-    // Monitor stderr for clangd logs
+    if read_message(&mut stdout_reader).is_ok() {
+        // Notify that we have initalized
+        let initialized_notification = json!({
+            "jsonrpc": "2.0",
+            "method": "initialized",
+            "params": {}
+        }).to_string();
+
+        let message = format!("Content-Length: {}\r\n\r\n{}", initialized_notification.len(), initialized_notification);
+        stdin.write_all(message.as_bytes())?;
+        stdin.flush()?;
+
+        let file_path = "./main.rs";
+        let file_content = std::fs::read_to_string(file_path)?;
+        let did_open_request = format!(
+            r#"{{
+                "jsonrpc": "2.0",
+                "method": "textDocument/didOpen",
+                "params": {{
+                    "textDocument": {{
+                        "uri": "file://{0}",
+                        "languageId": "rs",
+                        "version": 1,
+                        "text": "{1}"
+                    }}
+                }}
+            }}"#,
+            file_path,
+            file_content.replace('\n', "\\n").replace('"', "\\\"")
+        );
+
+        let did_open_message = format!(
+            "Content-Length: {}\r\n\r\n{}",
+            did_open_request.len(),
+            did_open_request
+        );
+
+        stdin.write_all(did_open_message.as_bytes())?;
+        stdin.flush()?;
+    }
+
+    // Monitor stderr for lsp logs
     let mut stderr_reader = BufReader::new(stderr);
     std::thread::spawn(move || {
         let mut log = String::new();
         while stderr_reader.read_line(&mut log).is_ok() {
             if !log.trim().is_empty() {
-                println!("[CLANGD LOG] {:#}", log.trim());
+                println!("[LSP LOG] {:#}", log.trim());
             }
             log.clear();
         }
@@ -139,6 +150,6 @@ pub fn run_lsp(directory: String) -> std::io::Result<()> {
         }
     }
 
-    clangd.wait()?;
+    lsp.wait()?;
     Ok(())
 }

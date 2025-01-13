@@ -128,6 +128,6 @@ fn main()  -> Result<(), Box<dyn Error>> {
                 cx.activate(true);
             })
             .unwrap();
-    });;
+    });
     Ok(())
 }

@@ -12,6 +12,10 @@ use lsp::lsp::run_lsp;
 use text::{text::TextInput, text_input::*};
 use std::error::Error;
 
+struct Warning {
+    warning: String, // just for lsp diagnostics testing
+}
+
 struct File {
     text_input: View<TextInput>, // file lines
     focus_handle: FocusHandle,
@@ -46,7 +50,7 @@ fn main()  -> Result<(), Box<dyn Error>> {
         args[1] =  "/".to_string() + &args[1];
     }
     let filename = env::current_dir().unwrap().as_os_str().to_str().unwrap().to_owned() + &args[1];
-    let _ = run_lsp(env::current_dir().unwrap().as_os_str().to_str().unwrap().to_owned().clone());
+    // let _ = run_lsp(env::current_dir().unwrap().as_os_str().to_str().unwrap().to_owned().clone());
 
     App::new().run(|cx: &mut AppContext| {
         let bounds = Bounds::centered(None, size(px(300.0), px(300.0)), cx);

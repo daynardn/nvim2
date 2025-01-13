@@ -6,3 +6,4 @@ test/lorem_ipsum_2gb.txt
 test/lorem_ipsum_8gb.txt
 # I stole this so I'm not gonna os it
 test/genlorum.py
+test/note.txt

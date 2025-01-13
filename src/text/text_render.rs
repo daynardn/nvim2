@@ -13,7 +13,7 @@ impl Render for TextInput {
 
         // visible lines
         let mut min_line = max(self.focused_line as i32 - bounds as i32, 0) as usize;
-        let mut max_line = min(self.focused_line + bounds, self.lines);
+        let mut max_line = min(self.focused_line, self.lines);
 
         if min_line == 0 && max_line + min_line < bounds * 2 {
             // no bounds because if max_line + min_line < bounds, never overflow
@@ -22,7 +22,8 @@ impl Render for TextInput {
             min_line = max_line.checked_sub(bounds * 2).unwrap_or(0);
         }
 
-        max_line = min(max_line, self.lines); // make sure not oob
+        // add one for clamp and make sure not oob
+        max_line = min(max_line + 1, self.lines);
         // checked sub checks oob for min_line
         
         let wrap_width = None; // cx.viewport_size().width;

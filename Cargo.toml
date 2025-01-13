@@ -4,8 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tokio = "1.42.0"
+tokio = { version = "1.42.0", features = ["full"] }
 gpui = { git = "https://github.com/zed-industries/zed" }
 unicode-segmentation = "1.12.0"
 smallvec = "1.13.2"
 lsp-types = "0.97.0"
+serde_json = { version = "1.0.135", features = ["raw_value"] }
+json_rpc = "0.2.0"
+jsonrpc = "0.18.0"

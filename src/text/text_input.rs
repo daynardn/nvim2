@@ -226,7 +226,10 @@ impl TextInput {
                 self.content[line] = (self.content[line][0..range.start].to_owned() + 
                     &self.content[line][range.end..]).into();
 
-            }else if line == selected_lines.start {
+                break;
+            }
+
+            if line == selected_lines.start {
                 println!("test {} , {}", range.start, self.content[line].len());
                 // let start = min(range.start, self.content[line].len());
                 self.content[line] = self.content[line][0..range.start].to_owned().into();
@@ -331,10 +334,24 @@ impl TextInput {
     }
 
     pub fn normalized_selection_bounds(&self) -> Range<usize> {
+        // invert on lines and range
+        self.normalized_selection_bounds_lines(
+            self.normalized_selection_bounds_range(self.selected_range.clone()))
+    }
+
+    pub fn normalized_selection_bounds_range(&self, selected_range: Range<usize>) -> Range<usize> {
         if !self.selection_reversed {
-            self.selected_range.clone()
+            selected_range
         } else {
-            Range { start: self.selected_range.end, end: self.selected_range.start }
+            Range { start: selected_range.end, end: selected_range.start }
+        }
+    }
+
+    pub fn normalized_selection_bounds_lines(&self,  selected_range: Range<usize>) -> Range<usize> {
+        if !self.selected_lines_reversed {
+            selected_range
+        } else {
+            Range { start: selected_range.end, end: selected_range.start }
         }
     }
 

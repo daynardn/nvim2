@@ -1,17 +1,47 @@
-use std::{io::{BufRead, BufReader, Read, Write}, process::{self, Command, Stdio}, str::FromStr};
-use lsp_types::{notification::{Notification, PublishDiagnostics}, *};
-use serde_json::{to_string, value::to_raw_value};
+use std::{
+    io::{BufRead, BufReader, Read, Write},
+    process::{self, Command, Stdio},
+    str::FromStr,
+};
+use lsp_types::{
+    notification::{Notification, PublishDiagnostics},
+    *,
+};
+use serde_json::{from_str, to_string, value::to_raw_value};
+
+fn read_message<R: Read>(reader: &mut BufReader<R>) -> std::io::Result<Option<String>> {
+    let mut header = String::new();
+    let mut content_length: usize = 0;
+
+    // Read headers
+    loop {
+        header.clear();
+        if reader.read_line(&mut header)? == 0 {
+            return Ok(None);
+        }
+        
+        let header = header.trim();
+        if header.is_empty() {
+            break;
+        }
+        
+        if let Some(length_str) = header.strip_prefix("Content-Length: ") {
+            content_length = length_str.parse().unwrap_or(0);
+        }
+    }
+
+    // Read content
+    let mut content = vec![0; content_length];
+    reader.read_exact(&mut content)?;
+    
+    Ok(Some(String::from_utf8_lossy(&content).into_owned()))
+}
 
 fn get_init(directory: String) -> Option<String> {
     #[allow(deprecated)]
     let initialize_params = InitializeParams {
         process_id: Some(process::id()),
         workspace_folders: None,
-        // Some(vec![
-            // WorkspaceFolder { 
-            //     uri: Uri::from_str("file://./main.c").unwrap(),
-            //     name: "".to_string(),
-            // }]),
         initialization_options: None,
         capabilities: ClientCapabilities::default(),
         trace: Some(TraceValue::Verbose),
@@ -23,7 +53,6 @@ fn get_init(directory: String) -> Option<String> {
     };
 
     let to_value = serde_json::to_value(initialize_params);
-    
     let raw_value = to_raw_value(&to_value.unwrap()).unwrap();
     let initialize_request = jsonrpc::Request {
         jsonrpc: Some("2.0"),
@@ -32,7 +61,6 @@ fn get_init(directory: String) -> Option<String> {
         params: Some(&raw_value),
     };
 
-    // Serialize the request and send it to clangd
     let request_json = to_string(&initialize_request).ok()?;
     let request_message = format!("Content-Length: {}\r\n\r\n{}", request_json.len(), request_json);
     Some(request_message)
@@ -40,7 +68,7 @@ fn get_init(directory: String) -> Option<String> {
 
 pub fn run_lsp(directory: String) -> std::io::Result<()> {
     let mut clangd = Command::new("clangd")
-        .arg("--log=verbose")
+        // .arg("--log=verbose")
         .stdout(Stdio::piped())
         .stdin(Stdio::piped())
         .stderr(Stdio::piped())
@@ -51,9 +79,6 @@ pub fn run_lsp(directory: String) -> std::io::Result<()> {
     let stderr = clangd.stderr.take().expect("Failed to open stderr");
 
     let init_request = get_init(directory).unwrap();
-    println!("request: {}", init_request);
-
-    // write init message
     stdin.write_all(init_request.as_bytes())?;
     stdin.flush()?;
 
@@ -75,19 +100,19 @@ pub fn run_lsp(directory: String) -> std::io::Result<()> {
         file_path,
         file_content.replace('\n', "\\n").replace('"', "\\\"")
     );
+
     let did_open_message = format!(
         "Content-Length: {}\r\n\r\n{}",
         did_open_request.len(),
         did_open_request
     );
-    println!("Sending didOpen request:\n{}", did_open_request);
+
     stdin.write_all(did_open_message.as_bytes())?;
     stdin.flush()?;
 
-    // Read and process clangd responses
-    let mut reader = BufReader::new(stdout);
-    let mut response = String::new();
-
+    // Handle stdout messages
+    let mut stdout_reader = BufReader::new(stdout);
+    
     // Monitor stderr for clangd logs
     let mut stderr_reader = BufReader::new(stderr);
     std::thread::spawn(move || {
@@ -101,15 +126,19 @@ pub fn run_lsp(directory: String) -> std::io::Result<()> {
     });
 
     println!("Waiting for diagnostics...");
-    while reader.read_line(&mut response)? > 0 {
-        if response.contains(PublishDiagnostics::METHOD) {
-            println!("Diagnostics received:\n{}", response);
+    while let Ok(Some(message)) = read_message(&mut stdout_reader) {
+        // Try to parse as PublishDiagnostics notification
+        if let Ok(notification) = from_str::<serde_json::Value>(&message) {
+            if notification["method"] == "textDocument/publishDiagnostics" {
+                println!("Received diagnostics:");
+                println!("{}", serde_json::to_string_pretty(&notification).unwrap());
+            } else {
+                println!("Other message received:");
+                println!("{}", serde_json::to_string_pretty(&notification).unwrap());
+            }
         }
-        println!("DIAG {}", response);
-        response.clear();
     }
 
     clangd.wait()?;
-
     Ok(())
 }

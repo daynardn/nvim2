@@ -13,7 +13,7 @@ impl Render for TextInput {
 
         // visible lines
         let mut min_line = max(self.focused_line as i32 - bounds as i32, 0) as usize;
-        let mut max_line = min(self.focused_line, self.lines);
+        let mut max_line = min(self.focused_line + bounds, self.lines);
 
         if min_line == 0 && max_line + min_line < bounds * 2 {
             // no bounds because if max_line + min_line < bounds, never overflow

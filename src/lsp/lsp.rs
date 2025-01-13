@@ -1,19 +1,8 @@
 use std::{io::{BufRead, BufReader, Read, Write}, process::{self, Command, Stdio}, str::FromStr};
-use lsp_types::*;
+use lsp_types::{notification::{Notification, PublishDiagnostics}, *};
 use serde_json::{to_string, value::to_raw_value};
 
-pub fn run_lsp(directory: String) -> std::io::Result<()> {
-    let mut clangd = Command::new("clangd")
-        .arg("--log=verbose")
-        .stdout(Stdio::piped())
-        .stdin(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()?;
-
-    let stdin = clangd.stdin.as_mut().expect("Failed to open stdin");
-    let stdout = clangd.stdout.take().expect("Failed to open stdout");
-    let stderr = clangd.stderr.take().expect("Failed to open stderr");
-
+fn get_init(directory: String) -> Option<String> {
     #[allow(deprecated)]
     let initialize_params = InitializeParams {
         process_id: Some(process::id()),
@@ -41,16 +30,31 @@ pub fn run_lsp(directory: String) -> std::io::Result<()> {
         id: 1.into(),
         method: "initialize",
         params: Some(&raw_value),
-        // params:
     };
 
     // Serialize the request and send it to clangd
-    let request_json = to_string(&initialize_request)?;
+    let request_json = to_string(&initialize_request).ok()?;
     let request_message = format!("Content-Length: {}\r\n\r\n{}", request_json.len(), request_json);
-    println!("request: {}", request_json);
+    Some(request_message)
+}
+
+pub fn run_lsp(directory: String) -> std::io::Result<()> {
+    let mut clangd = Command::new("clangd")
+        .arg("--log=verbose")
+        .stdout(Stdio::piped())
+        .stdin(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+
+    let stdin = clangd.stdin.as_mut().expect("Failed to open stdin");
+    let stdout = clangd.stdout.take().expect("Failed to open stdout");
+    let stderr = clangd.stderr.take().expect("Failed to open stderr");
+
+    let init_request = get_init(directory).unwrap();
+    println!("request: {}", init_request);
 
     // write init message
-    stdin.write_all(request_message.as_bytes())?;
+    stdin.write_all(init_request.as_bytes())?;
     stdin.flush()?;
 
     let file_path = "./main.c";
@@ -98,10 +102,10 @@ pub fn run_lsp(directory: String) -> std::io::Result<()> {
 
     println!("Waiting for diagnostics...");
     while reader.read_line(&mut response)? > 0 {
-        if response.contains("textDocument/publishDiagnostics") {
+        if response.contains(PublishDiagnostics::METHOD) {
             println!("Diagnostics received:\n{}", response);
         }
-        // println!("FIAG {}", response);
+        println!("DIAG {}", response);
         response.clear();
     }
 

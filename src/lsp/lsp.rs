@@ -65,25 +65,38 @@ fn get_init(directory: String) -> Option<String> {
     Some(request_message)
 }
 
-pub fn run_lsp(directory: String) -> std::io::Result<()> {
-    let mut lsp = Command::new("rust-analyzer")
+pub struct Lsp {
+    directory: String,
+    stdin: process::ChildStdin,
+    stdout_reader: BufReader<process::ChildStdout>,
+}
+
+pub fn start_lsp(directory: String) -> Lsp {
+    let mut lsp_command = Command::new("rust-analyzer")
         .stdout(Stdio::piped())
         .stdin(Stdio::piped())
         .stderr(Stdio::piped())
-        .spawn()?;
+        .spawn().unwrap();
 
-    let stdin = lsp.stdin.as_mut().expect("Failed to open stdin");
-    let stdout = lsp.stdout.take().expect("Failed to open stdout");
-    let stderr = lsp.stderr.take().expect("Failed to open stderr");
+    let stdin = lsp_command.stdin.expect("Failed to open stdin");
+    let stdout = lsp_command.stdout.expect("Failed to open stdout");
+    let stdout_reader = BufReader::new(stdout);
+
+    let mut lsp = Lsp { 
+        directory: directory.clone(), 
+        stdin,
+        stdout_reader,
+    };
+
+    // let stderr = lsp_command.stderr.take().expect("Failed to open stderr");
 
     let init_request = get_init(directory).unwrap();
     println!("{}", init_request);
-    stdin.write_all(init_request.as_bytes())?;
-    stdin.flush()?;
+    lsp.stdin.write_all(init_request.as_bytes()).unwrap();
+    lsp.stdin.flush().unwrap();
 
     // Handle stdout messages
-    let mut stdout_reader = BufReader::new(stdout);
-    if read_message(&mut stdout_reader).is_ok() {
+    if read_message(&mut lsp.stdout_reader).is_ok() {
         // Notify that we have initalized
         let initialized_notification = json!({
             "jsonrpc": "2.0",
@@ -92,11 +105,11 @@ pub fn run_lsp(directory: String) -> std::io::Result<()> {
         }).to_string();
 
         let message = format!("Content-Length: {}\r\n\r\n{}", initialized_notification.len(), initialized_notification);
-        stdin.write_all(message.as_bytes())?;
-        stdin.flush()?;
+        lsp.stdin.write_all(message.as_bytes()).unwrap();
+        lsp.stdin.flush().unwrap();
 
         let file_path = "./main.rs";
-        let file_content = std::fs::read_to_string(file_path)?;
+        let file_content = std::fs::read_to_string(file_path).unwrap();
         let did_open_request = format!(
             r#"{{
                 "jsonrpc": "2.0",
@@ -120,24 +133,28 @@ pub fn run_lsp(directory: String) -> std::io::Result<()> {
             did_open_request
         );
 
-        stdin.write_all(did_open_message.as_bytes())?;
-        stdin.flush()?;
+        lsp.stdin.write_all(did_open_message.as_bytes()).unwrap();
+        lsp.stdin.flush().unwrap();
     }
 
+    lsp
+}
+
+pub fn run_lsp(mut lsp: Lsp) -> std::io::Result<()> {
     // Monitor stderr for lsp logs
-    let mut stderr_reader = BufReader::new(stderr);
-    std::thread::spawn(move || {
-        let mut log = String::new();
-        while stderr_reader.read_line(&mut log).is_ok() {
-            if !log.trim().is_empty() {
-                println!("[LSP LOG] {:#}", log.trim());
-            }
-            log.clear();
-        }
-    });
+    // let mut stderr_reader = BufReader::new(stderr);
+    // std::thread::spawn(move || {
+    //     let mut log = String::new();
+    //     while stderr_reader.read_line(&mut log).is_ok() {
+    //         if !log.trim().is_empty() {
+    //             println!("[LSP LOG] {:#}", log.trim());
+    //         }
+    //         log.clear();
+    //     }
+    // });
 
     println!("Waiting for diagnostics...");
-    while let Ok(Some(message)) = read_message(&mut stdout_reader) {
+    while let Ok(Some(message)) = read_message(&mut lsp.stdout_reader) {
         // Try to parse as PublishDiagnostics notification
         if let Ok(notification) = from_str::<serde_json::Value>(&message) {
             if notification["method"] == "textDocument/publishDiagnostics" {
@@ -150,6 +167,6 @@ pub fn run_lsp(directory: String) -> std::io::Result<()> {
         }
     }
 
-    lsp.wait()?;
+    // lsp.wait()?;
     Ok(())
 }

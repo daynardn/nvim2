@@ -6,7 +6,7 @@ use std::{arch::x86_64::_mm_pause, env, thread::sleep, time};
 
 use files::files::load_file;
 use gpui::{
-    div, prelude::*, px, rgb, size, App, AppContext, Bounds, Context, FocusHandle, FocusableView, KeyBinding, TaskLabel, View, ViewContext, WindowBounds, WindowOptions
+    div, prelude::*, px, rgb, size, App, AppContext, Bounds, Context, FocusHandle, FocusableView, KeyBinding, SharedString, TaskLabel, View, ViewContext, WindowBounds, WindowOptions
 };
 use lsp::lsp::run_lsp;
 use text::{text::TextInput, text_input::*};
@@ -145,10 +145,23 @@ fn main()  -> Result<(), Box<dyn Error>> {
             }).await;
             // signal that lsp ran
             cx.update(|cx| {
-                window.update(cx, |_, cx| cx.notify()).ok();
+                window.update(cx, |view, cx| {
+                    cx.update_model(&view.text_input.model, |a, b| {
+                        a.lines = 0;
+                        let mut shared_string_vec = vec![];
+                        let str: String = serde_json::to_string_pretty(&results.unwrap().1).unwrap();
+                        for line in str.lines() {
+                            shared_string_vec.push(line.to_string().into()); // Convert &str to String
+                            a.lines += 1;
+                        }
+                        
+                        a.content = shared_string_vec;
+                    });
+                    cx.notify()
+                }).ok();
             })
             .ok();
-            println!("{:#?}", results);
+            // println!("{:#?}", results);
         }).detach();
             
     });

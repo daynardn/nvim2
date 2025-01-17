@@ -2,11 +2,11 @@ mod text;
 mod files;
 mod lsp;
 
-use std::env;
+use std::{arch::x86_64::_mm_pause, env, thread::sleep, time};
 
 use files::files::load_file;
 use gpui::{
-    div, prelude::*, px, rgb, size, App, AppContext, Bounds, FocusHandle, FocusableView, KeyBinding, View, ViewContext, WindowBounds, WindowOptions
+    div, prelude::*, px, rgb, size, App, AppContext, Bounds, Context, FocusHandle, FocusableView, KeyBinding, TaskLabel, View, ViewContext, WindowBounds, WindowOptions
 };
 use lsp::lsp::run_lsp;
 use text::{text::TextInput, text_input::*};
@@ -54,12 +54,10 @@ fn main()  -> Result<(), Box<dyn Error>> {
     let filename = env::current_dir().unwrap().as_os_str().to_str().unwrap().to_owned() + &args[1];
 
     let lsp = start_lsp(env::current_dir().unwrap().as_os_str().to_str().unwrap().to_owned().clone());
+    println!("waiting");
+    let app = App::new();
 
-    let thread = std::thread::spawn(move || {
-        run_lsp(lsp)
-    });
-    // println!("{}", thread.join());
-    App::new().run(|cx: &mut AppContext| {
+    app.run(|cx: &mut AppContext| {
         let bounds = Bounds::centered(None, size(px(300.0), px(300.0)), cx);
         cx.bind_keys([
             KeyBinding::new("enter", Enter, None),
@@ -139,6 +137,20 @@ fn main()  -> Result<(), Box<dyn Error>> {
                 cx.activate(true);
             })
             .unwrap();
+
+        // run lsp
+        cx.spawn(|cx: gpui::AsyncAppContext| async move {
+            let results = cx.background_executor().spawn({
+                run_lsp(lsp)
+            }).await;
+            // signal that lsp ran
+            cx.update(|cx| {
+                window.update(cx, |_, cx| cx.notify()).ok();
+            })
+            .ok();
+            println!("{:#?}", results);
+        }).detach();
+            
     });
     Ok(())
 }

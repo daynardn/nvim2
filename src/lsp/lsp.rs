@@ -6,7 +6,7 @@ use std::{
 use lsp_types::{
     *,
 };
-use serde_json::{from_str, json, to_string, value::to_raw_value};
+use serde_json::{from_str, json, to_string, value::to_raw_value, Value};
 
 fn read_message<R: Read>(reader: &mut BufReader<R>) -> std::io::Result<Option<String>> {
     let mut header = String::new();
@@ -65,6 +65,7 @@ fn get_init(directory: String) -> Option<String> {
     Some(request_message)
 }
 
+#[derive(Debug)]
 pub struct Lsp {
     directory: String,
     stdin: process::ChildStdin,
@@ -72,7 +73,7 @@ pub struct Lsp {
 }
 
 pub fn start_lsp(directory: String) -> Lsp {
-    let mut lsp_command = Command::new("rust-analyzer")
+    let lsp_command = Command::new("rust-analyzer")
         .stdout(Stdio::piped())
         .stdin(Stdio::piped())
         .stderr(Stdio::piped())
@@ -140,33 +141,25 @@ pub fn start_lsp(directory: String) -> Lsp {
     lsp
 }
 
-pub fn run_lsp(mut lsp: Lsp) -> std::io::Result<()> {
-    // Monitor stderr for lsp logs
-    // let mut stderr_reader = BufReader::new(stderr);
-    // std::thread::spawn(move || {
-    //     let mut log = String::new();
-    //     while stderr_reader.read_line(&mut log).is_ok() {
-    //         if !log.trim().is_empty() {
-    //             println!("[LSP LOG] {:#}", log.trim());
-    //         }
-    //         log.clear();
-    //     }
-    // });
-
+// lsp, diagnostics
+pub async fn run_lsp(mut lsp: Lsp) -> std::io::Result<(Lsp, Option<Value>)> {
     println!("Waiting for diagnostics...");
     while let Ok(Some(message)) = read_message(&mut lsp.stdout_reader) {
         // Try to parse as PublishDiagnostics notification
         if let Ok(notification) = from_str::<serde_json::Value>(&message) {
             if notification["method"] == "textDocument/publishDiagnostics" {
                 println!("Received diagnostics:");
-                println!("{}", serde_json::to_string_pretty(&notification).unwrap());
+                // println!("{}", serde_json::to_string_pretty(&notification).unwrap());
+
+                return Ok((lsp, Some(notification)));
             } else {
-                println!("Other message received:");
-                println!("{}", serde_json::to_string_pretty(&notification).unwrap());
+                // println!("Other message received:");
+                // println!("{}", serde_json::to_string_pretty(&notification).unwrap());
+                return Ok((lsp, None))
             }
         }
     }
 
     // lsp.wait()?;
-    Ok(())
+    Ok((lsp, None))
 }

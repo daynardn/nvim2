@@ -256,7 +256,28 @@ impl Element for TextElement {
             .into_iter()
             .filter(|run| run.len > 0)
             .collect()
-        } else {
+        } else if input.diagnostics.contains_key(&self.id) {
+            let diagnostics = input.diagnostics.get(&self.id).unwrap();
+            vec![
+                TextRun {
+                    len: diagnostics.diagnostic_range.start,
+                    ..run.clone()
+                },
+                TextRun {
+                    len: diagnostics.diagnostic_range.end - diagnostics.diagnostic_range.start,
+                    underline: Some(UnderlineStyle {
+                        color: Some(hsla(0.15, 1.0, 0.5, 1.0)),
+                        thickness: px(2.0),
+                        wavy: true,
+                    }),
+                    ..run.clone()
+                },
+                TextRun {
+                    len: display_text.len() - diagnostics.diagnostic_range.end,
+                    ..run.clone()
+                },
+            ]
+        }else {
             vec![run]
         };
         // println!("{}", display_text);

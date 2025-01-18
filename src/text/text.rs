@@ -1,8 +1,10 @@
-use std::ops::Range;
+use std::{collections::HashMap, ops::Range};
 
 use gpui::{
     prelude::*, AppContext, Bounds, FocusHandle, FocusableView, Pixels, SharedString, View, WrappedLine,
 };
+
+use crate::lsp::decode::Diagnostics;
 
 // defines what is basically the list of lines that is a file
 pub struct TextInput {
@@ -22,6 +24,7 @@ pub struct TextInput {
     pub last_bounds: Option<Bounds<Pixels>>,
     pub last_cursor_scroll: Pixels, // l-r content offset
     pub is_selecting: bool,
+    pub diagnostics: HashMap<usize, Diagnostics>,
 }
 
 // one line of a file

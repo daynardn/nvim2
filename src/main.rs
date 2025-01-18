@@ -2,7 +2,7 @@ mod text;
 mod files;
 mod lsp;
 
-use std::{arch::x86_64::_mm_pause, env, thread::sleep, time};
+use std::{arch::x86_64::_mm_pause, collections::HashMap, env, hash::Hash, thread::sleep, time};
 
 use files::files::load_file;
 use gpui::{
@@ -12,11 +12,7 @@ use lsp::lsp::run_lsp;
 use text::{text::TextInput, text_input::*};
 use std::error::Error;
 
-use crate::lsp::lsp::start_lsp;
-
-struct Warning {
-    warning: String, // just for lsp diagnostics testing
-}
+use crate::lsp::{decode::Diagnostics, lsp::start_lsp};
 
 struct File {
     text_input: View<TextInput>, // file lines
@@ -108,6 +104,7 @@ fn main()  -> Result<(), Box<dyn Error>> {
                         last_bounds: None,
                         last_cursor_scroll: px(0.0),
                         is_selecting: false,
+                        diagnostics: HashMap::new(),
                     });
                     cx.new_view(|cx| File {
                         text_input,
@@ -147,15 +144,14 @@ fn main()  -> Result<(), Box<dyn Error>> {
             cx.update(|cx| {
                 window.update(cx, |view, cx| {
                     cx.update_model(&view.text_input.model, |a, b| {
-                        a.lines = 0;
-                        let mut shared_string_vec = vec![];
-                        let str: String = serde_json::to_string_pretty(&results.unwrap().1).unwrap();
-                        for line in str.lines() {
-                            shared_string_vec.push(line.to_string().into()); // Convert &str to String
-                            a.lines += 1;
-                        }
-                        
-                        a.content = shared_string_vec;
+                        let results = results.unwrap().1.unwrap();
+                        println!("{:?}", results.get("params").unwrap().get("diagnostics"));
+                        a.diagnostics = HashMap::new();
+                        a.diagnostics.insert(0, Diagnostics {
+                            diagnostic_range: 0..3,
+                            is_error: false,
+                            message: "Warning".to_string(),
+                        })
                     });
                     cx.notify()
                 }).ok();

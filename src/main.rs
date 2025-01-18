@@ -146,12 +146,27 @@ fn main()  -> Result<(), Box<dyn Error>> {
                     cx.update_model(&view.text_input.model, |a, b| {
                         let results = results.unwrap().1.unwrap();
                         println!("{:?}", results.get("params").unwrap().get("diagnostics"));
+                        let diagnostics = results.get("params").unwrap().get("diagnostics").unwrap();
+                        
+                        // println!("{}", serde_json::to_string_pretty(diagnostics).unwrap());
+                        println!("\n\nTWO: \n{}", serde_json::to_string_pretty(&diagnostics.get(2)).unwrap());
                         a.diagnostics = HashMap::new();
-                        a.diagnostics.insert(0, Diagnostics {
-                            diagnostic_range: 0..3,
-                            is_error: false,
-                            message: "Warning".to_string(),
-                        })
+                        let mut i = 0;
+                        while diagnostics.get(i).is_some() {
+                            let error = diagnostics.get(i).unwrap();
+                            let range = error.get("range").unwrap();
+                            let start = range.get("start").unwrap().get("character").unwrap().as_u64().unwrap() as usize;
+                            let end = range.get("end").unwrap().get("character").unwrap().as_u64().unwrap() as usize;
+                            // TODO line could be range
+                            let line = range.get("start").unwrap().get("line").unwrap().as_u64().unwrap() as usize;
+                            // TODO check file
+                            a.diagnostics.insert(line, Diagnostics {
+                                diagnostic_range: start..end,
+                                is_error: false,
+                                message: "Warning".to_string(),
+                            });
+                            i += 1;
+                        }
                     });
                     cx.notify()
                 }).ok();

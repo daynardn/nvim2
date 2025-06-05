@@ -155,11 +155,18 @@ fn main()  -> Result<(), Box<dyn Error>> {
                         while diagnostics.get(i).is_some() {
                             let error = diagnostics.get(i).unwrap();
                             let range = error.get("range").unwrap();
+                            // the get(0) is because relatedInformation is a 1 slot array
+                            let uri = error.get("relatedInformation").unwrap().get(0).unwrap().get("location").unwrap().get("uri").unwrap().as_str().unwrap();
                             let start = range.get("start").unwrap().get("character").unwrap().as_u64().unwrap() as usize;
                             let end = range.get("end").unwrap().get("character").unwrap().as_u64().unwrap() as usize;
                             // TODO line could be range
                             let line = range.get("start").unwrap().get("line").unwrap().as_u64().unwrap() as usize;
                             // TODO check file, and multiple error same line
+
+                            if !uri.contains("main.rs") {
+                                i += 1;
+                                continue;
+                            }
 
                             let diagnostic = Diagnostics {
                                 diagnostic_range: start..end,
@@ -167,9 +174,9 @@ fn main()  -> Result<(), Box<dyn Error>> {
                                 message: "Warning".to_string(),
                             };
 
-                            if a.diagnostics.contains_key(&line) {
+                            if a.diagnostics.contains_key(&line) { // push
                                 a.diagnostics.get_mut(&line).unwrap_or(&mut vec![]).push(diagnostic);
-                            }else {
+                            }else { // needs new vector
                                 a.diagnostics.insert(line, vec![diagnostic]);
                             }
                             println!("\n\nTWO: \n{}", serde_json::to_string_pretty(error).unwrap());

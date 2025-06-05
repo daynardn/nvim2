@@ -152,11 +152,9 @@ pub async fn run_lsp(mut lsp: Lsp) -> std::io::Result<(Lsp, Option<Value>)> {
                 // println!("{}", serde_json::to_string_pretty(&notification).unwrap());
 
                 return Ok((lsp, Some(notification)));
-            } else {
-                // println!("Other message received:");
-                // println!("{}", serde_json::to_string_pretty(&notification).unwrap());
-                return Ok((lsp, None))
             }
+            // else
+            return Ok((lsp, None))
         }
     }
 

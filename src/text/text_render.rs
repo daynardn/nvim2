@@ -1,14 +1,21 @@
-use std::{cmp::{max, min}, mem::swap};
+use std::{
+    cmp::{max, min},
+    mem::swap,
+    ops::Range,
+};
 
 use gpui::{
-    div, fill, hsla, point, prelude::*, px, relative, rgb, rgba, size, white, Bounds, CursorStyle, ElementId, ElementInputHandler, FocusableView, GlobalElementId, LayoutId, MouseButton, PaintQuad, Pixels, Point, SharedString, Style, TextRun, UnderlineStyle, ViewContext, WindowContext, WrappedLine
+    div, fill, hsla, point, prelude::*, px, relative, rgb, rgba, size, white, Bounds, CursorStyle,
+    ElementId, ElementInputHandler, FocusableView, GlobalElementId, LayoutId, MouseButton,
+    PaintQuad, Pixels, Point, SharedString, Style, TextRun, UnderlineStyle, ViewContext,
+    WindowContext, WrappedLine,
 };
 
 use super::text::{TextElement, TextInput};
 
 impl Render for TextInput {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
-        let bounds: usize = 
+        let bounds: usize =
             (((cx.viewport_size().height.to_f64() / 30.) as f32 + 0.5).round() / 2.0) as usize;
 
         // visible lines
@@ -18,36 +25,36 @@ impl Render for TextInput {
         if min_line == 0 && max_line + min_line < bounds * 2 {
             // no bounds because if max_line + min_line < bounds, never overflow
             max_line += bounds * 2 - (max_line + min_line);
-        }else if max_line == self.lines {
+        } else if max_line == self.lines {
             min_line = max_line.checked_sub(bounds * 2).unwrap_or(0);
         }
 
         // add one for clamp and make sure not oob
         max_line = min(max_line + 1, self.lines);
         // checked sub checks oob for min_line
-        
+
         let wrap_width = None; // cx.viewport_size().width;
         let cursor_push_dist = px(40.0); // dist from side of screen to move the screen
 
         let cursor_pos = get_cursor_pos_for_line(
-            self.cursor_offset(), 
-            wrap_width, 
-            cx, 
-            self.content[self.focused_line].clone()
+            self.cursor_offset(),
+            wrap_width,
+            cx,
+            self.content[self.focused_line].clone(),
         );
-
 
         let mut cursor_push_offset = // How far to actually move
             -max(px(0.0), cursor_pos - cx.viewport_size().width + cursor_push_dist);
- 
+
         // if we are going back, don't scroll until we just barely get back
-        if (cursor_pos - cx.viewport_size().width) + self.last_cursor_scroll < -cx.viewport_size().width + cursor_push_dist {
+        if (cursor_pos - cx.viewport_size().width) + self.last_cursor_scroll
+            < -cx.viewport_size().width + cursor_push_dist
+        {
             // this took me so long. The idea is that the offset = pos + distance from 40x on the left side
             cursor_push_offset = -max(px(0.0), cursor_pos - cursor_push_dist);
-        }else
+        } else
         // if we are going back, don't scroll
         if cursor_push_offset > self.last_cursor_scroll {
-
             cursor_push_offset = self.last_cursor_scroll;
         }
 
@@ -111,7 +118,7 @@ fn get_cursor_pos_for_line(
     cursor_offset: usize,
     wrap_width: Option<Pixels>,
     cx: &mut WindowContext,
-    input_line: SharedString
+    input_line: SharedString,
 ) -> Pixels {
     let run = TextRun {
         len: input_line.len(),
@@ -129,7 +136,10 @@ fn get_cursor_pos_for_line(
 
     let cursor_pos = line[0]
         .position_for_index(cursor_offset, cx.line_height())
-        .unwrap_or(Point { x: px(0.), y: px(0.) });
+        .unwrap_or(Point {
+            x: px(0.),
+            y: px(0.),
+        });
 
     cursor_pos.x
 }
@@ -152,10 +162,10 @@ impl Element for TextElement {
         let t_style = cx.text_style();
 
         style.size.width = relative(1.).into();
-        
+
         let input = self.input.read(cx);
         let content = input.content[self.id].clone();
-        
+
         let run = TextRun {
             len: content.len(),
             font: t_style.font(),
@@ -167,10 +177,9 @@ impl Element for TextElement {
         let font_size = px(24.);
         let line = cx
             .text_system()
-            .shape_text(content, font_size, 
-                &vec![run], self.wrap)
+            .shape_text(content, font_size, &vec![run], self.wrap)
             .unwrap();
-        
+
         style.size.height = line[0].size(cx.line_height()).height.into();
 
         (cx.request_layout(style, []), ())
@@ -198,22 +207,22 @@ impl Element for TextElement {
         if fully_selected {
             if self.id == selected_lines.start && self.id == selected_lines.end - 1 {
                 selected_range = selected_range;
-            }else if self.id == selected_lines.start {
+            } else if self.id == selected_lines.start {
                 if !input.selection_reversed {
                     selected_range = selected_range.start..content.len();
-                }else {
+                } else {
                     selected_range = selected_range.end..content.len();
                 }
-            }else if self.id == selected_lines.end - 1 {
+            } else if self.id == selected_lines.end - 1 {
                 if !input.selection_reversed {
                     selected_range = 0..selected_range.end;
-                }else {
+                } else {
                     selected_range = 0..selected_range.start;
                 }
-            }else {
+            } else {
                 selected_range = 0..content.len();
             }
-        }else {
+        } else {
             selected_range = 0..0;
         }
         let cursor = input.cursor_offset();
@@ -257,27 +266,57 @@ impl Element for TextElement {
             .filter(|run| run.len > 0)
             .collect()
         } else if input.diagnostics.contains_key(&self.id) {
-            let diagnostics = input.diagnostics.get(&self.id).unwrap();
-            vec![
-                TextRun {
-                    len: diagnostics.diagnostic_range.start,
+            let mut diagnostics = input.diagnostics.get(&self.id).unwrap().clone();
+            diagnostics.sort_by_key(|r| r.diagnostic_range.start);
+
+            let mut runs = vec![];
+
+            let mut cursor_pos = 0;
+            for diagnostic in diagnostics {
+                println!("FOUND: {:?}", diagnostic.diagnostic_range);
+
+                runs.append(&mut vec![TextRun {
+                    len: diagnostic.diagnostic_range.start,
                     ..run.clone()
-                },
-                TextRun {
-                    len: diagnostics.diagnostic_range.end - diagnostics.diagnostic_range.start,
-                    underline: Some(UnderlineStyle {
-                        color: Some(hsla(0.15, 1.0, 0.5, 1.0)),
-                        thickness: px(2.0),
-                        wavy: true,
-                    }),
-                    ..run.clone()
-                },
-                TextRun {
-                    len: display_text.len() - diagnostics.diagnostic_range.end,
-                    ..run.clone()
-                },
-            ]
-        }else {
+                }]);
+                runs.append(&mut vec![
+                    // TextRun {
+                    //     len: diagnostic.diagnostic_range.start,
+                    //     ..run.clone()
+                    // },
+                    TextRun {
+                        len: diagnostic.diagnostic_range.end - diagnostic.diagnostic_range.start,
+                        underline: Some(UnderlineStyle {
+                            color: Some(hsla(0.15, 1.0, 0.5, 1.0)),
+                            thickness: px(2.0),
+                            wavy: true,
+                        }),
+                        ..run.clone()
+                    },
+                    // TextRun {
+                    //     len: display_text.len() - diagnostic.diagnostic_range.end,
+                    //     ..run.clone()
+                    // },
+                ]);
+                cursor_pos = diagnostic.diagnostic_range.end;
+
+                // now need to insert regular text in the gaps
+                // display_text.len(), when buffer, split len in 2 parts at ..start and end..
+
+                // fn fill_gaps(runs: &Vec<TextRun>, len: usize) {
+                //     let vec_gaps: Vec<Range<usize>> = vec![];
+                //     let cursor = 0;
+
+                //     for run in runs {
+                //         if run.
+
+                //     }
+                // }
+
+                // fill_gaps(&runs, display_text.len())
+            }
+            runs
+        } else {
             vec![run]
         };
         // println!("{}", display_text);
@@ -290,20 +329,21 @@ impl Element for TextElement {
 
         let cursor_pos = line[0]
             .position_for_index(cursor, cx.line_height())
-            .unwrap_or(Point { x: px(0.), y: px(0.) });
-        
+            .unwrap_or(Point {
+                x: px(0.),
+                y: px(0.),
+            });
+
         let mut selection = None;
         if !selected_range.is_empty() {
             selection = Some(fill(
                 Bounds::from_corners(
                     point(
-                        bounds.left()
-                            + line[0].unwrapped_layout.x_for_index(selected_range.start),
+                        bounds.left() + line[0].unwrapped_layout.x_for_index(selected_range.start),
                         bounds.top(),
                     ),
                     point(
-                        bounds.left()
-                            + line[0].unwrapped_layout.x_for_index(selected_range.end),
+                        bounds.left() + line[0].unwrapped_layout.x_for_index(selected_range.end),
                         bounds.bottom(),
                     ),
                 ),
@@ -364,9 +404,9 @@ impl Element for TextElement {
             }
 
             self.lines_pixels = line.size(cx.line_height()).height;
-            self.request_layout(id, cx);
+            // self.request_layout(id, cx);
 
-            if self.input.read(cx).focused_line == self.id { 
+            if self.input.read(cx).focused_line == self.id {
                 self.input.update(cx, |input, _cx| {
                     input.last_layout = Some(line);
                     input.last_bounds = Some(bounds);

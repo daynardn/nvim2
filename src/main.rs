@@ -149,7 +149,7 @@ fn main()  -> Result<(), Box<dyn Error>> {
                         let diagnostics = results.get("params").unwrap().get("diagnostics").unwrap();
                         
                         // println!("{}", serde_json::to_string_pretty(diagnostics).unwrap());
-                        println!("\n\nTWO: \n{}", serde_json::to_string_pretty(&diagnostics.get(2)).unwrap());
+                        // println!("\n\nTWO: \n{}", serde_json::to_string_pretty(&diagnostics.get(1)).unwrap());
                         a.diagnostics = HashMap::new();
                         let mut i = 0;
                         while diagnostics.get(i).is_some() {
@@ -159,12 +159,20 @@ fn main()  -> Result<(), Box<dyn Error>> {
                             let end = range.get("end").unwrap().get("character").unwrap().as_u64().unwrap() as usize;
                             // TODO line could be range
                             let line = range.get("start").unwrap().get("line").unwrap().as_u64().unwrap() as usize;
-                            // TODO check file
-                            a.diagnostics.insert(line, Diagnostics {
+                            // TODO check file, and multiple error same line
+
+                            let diagnostic = Diagnostics {
                                 diagnostic_range: start..end,
                                 is_error: false,
                                 message: "Warning".to_string(),
-                            });
+                            };
+
+                            if a.diagnostics.contains_key(&line) {
+                                a.diagnostics.get_mut(&line).unwrap_or(&mut vec![]).push(diagnostic);
+                            }else {
+                                a.diagnostics.insert(line, vec![diagnostic]);
+                            }
+                            println!("\n\nTWO: \n{}", serde_json::to_string_pretty(error).unwrap());
                             i += 1;
                         }
                     });

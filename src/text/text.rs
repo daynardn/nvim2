@@ -24,7 +24,7 @@ pub struct TextInput {
     pub last_bounds: Option<Bounds<Pixels>>,
     pub last_cursor_scroll: Pixels, // l-r content offset
     pub is_selecting: bool,
-    pub diagnostics: HashMap<usize, Diagnostics>,
+    pub diagnostics: HashMap<usize, Vec<Diagnostics>>,
 }
 
 // one line of a file
